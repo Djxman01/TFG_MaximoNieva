@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block clase_pantalla %}tableta{% endblock %}
+
+{% block contenido %}
+<div class="encabezado">
+  <h1>Rondas a ejecutar</h1>
+</div>
+
+<div class="cuerpo">
+  {% for ronda, progreso in rondas %}
+  <a class="tarjeta acceso" href="/registro/{{ ronda.id }}">
+    <h2>Ronda {{ ronda.numero }} · {{ ronda.fecha_planificada | fecha }}</h2>
+    <p class="ayuda">{{ ronda.medio_inspeccion }} · Origen {{ nombre_de_base(ronda.origen_x, ronda.origen_y) }} · {{ ESTADOS_RONDA[ronda.estado] }}</p>
+    <div class="avance"><span style="width:{{ progreso.porcentaje }}%"></span></div>
+    <p class="ayuda" style="margin-top:6px">{{ progreso.atendidas }} de {{ progreso.total }} activos registrados</p>
+  </a>
+  {% else %}
+  <section class="tarjeta"><p class="ayuda" style="margin:0">No hay rondas programadas para ejecutar.</p></section>
+  {% endfor %}
+</div>
+{% endblock %}

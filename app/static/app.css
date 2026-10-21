@@ -125,3 +125,25 @@ a.tarjeta.acceso:hover { border-color: var(--accion); }
   border: 1px solid var(--borde-fuerte); border-radius: 6px; padding: 7px 10px;
   font-family: var(--tipo); font-size: 13px; background: var(--superficie);
 }
+
+/* ---------- Registro en campo (pantalla 05, tableta) ---------- */
+.pantalla.tableta { margin: 0 auto; max-width: 820px; }
+.grupo-campo { margin-top: 18px; }
+.grupo-campo > label {
+  display: block; font-size: 12px; font-weight: 500;
+  color: var(--txt-2); margin-bottom: 7px;
+}
+.nota-en-linea { font-weight: 400; color: var(--txt-3); }
+.selector-archivos { display: block; margin-top: 10px; font-size: 13px; }
+label.zona-carga { display: block; cursor: pointer; }
+.opcion .det { display: block; }
+
+/* Lo que no corresponde según lo elegido se apaga o se oculta, sin JavaScript.
+   Igual el servidor vuelve a validar todo al guardar. */
+.form-registro:has(input[name="estado"][value="no_accesible"]:checked) .solo-inspeccionado {
+  opacity: .38; pointer-events: none;
+}
+.panel-hallazgo { display: none; }
+.form-registro:has(input[name="estado"][value="inspeccionado"]:checked):has(input[name="resultado"][value="con_hallazgos"]:checked) .panel-hallazgo {
+  display: block;
+}

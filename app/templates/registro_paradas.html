@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+
+{% block clase_pantalla %}tableta{% endblock %}
+
+{% block contenido %}
+<div class="encabezado">
+  <div class="miga"><a href="/registro">Rondas a ejecutar</a><span>›</span>{{ ronda.numero }}</div>
+  <h1>Ronda {{ ronda.numero }}</h1>
+</div>
+
+<div class="tira" style="display:block">
+  <div class="meta">{{ ronda.fecha_planificada | fecha }} · {{ ronda.medio_inspeccion }} · Origen {{ nombre_de_base(ronda.origen_x, ronda.origen_y) }}</div>
+  <div class="avance" style="margin-top:10px"><span style="width:{{ avance.porcentaje }}%"></span></div>
+  <div class="meta" style="margin-top:6px">{{ avance.atendidas }} de {{ avance.total }} activos registrados</div>
+</div>
+
+{% if registrado %}<p class="aviso exito" role="status" style="margin:14px 20px 0">{{ registrado }}: registro guardado.</p>{% endif %}
+{% if not siguiente %}<p class="aviso exito" style="margin:14px 20px 0">Todos los activos del recorrido tienen su registro.</p>{% endif %}
+
+<div class="cuerpo">
+  <section class="tarjeta">
+    <h2>Recorrido</h2>
+    {% for parada in paradas %}
+    <div class="fila-orden {% if parada.estado_atencion != 'pendiente' %}lectura{% endif %}">
+      <span class="num">{{ parada.orden_planificado }}</span>
+      <span class="nom">{{ parada.activo.codigo }}
+        {% if parada.estado_atencion != "pendiente" %}<em>· {{ ESTADOS_ATENCION[parada.estado_atencion] }} {{ parada.fecha_hora_atencion | fecha_hora }}</em>{% endif %}
+      </span>
+      <span class="marca {{ parada.criticidad.categoria }}">{{ parada.criticidad.categoria | titulo }}</span>
+      {% if parada.estado_atencion == "pendiente" %}
+      <a class="boton {% if siguiente and parada.id == siguiente.id %}primario{% endif %}" style="flex:none; width:120px" href="/registro/{{ ronda.id }}/{{ parada.id }}">Registrar</a>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </section>
+</div>
+{% endblock %}

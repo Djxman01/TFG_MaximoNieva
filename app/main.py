@@ -13,7 +13,7 @@ from app.config import DURACION_SESION, SECRET_KEY
 from app.database import obtener_db
 from app.models import Usuario
 from app.plantillas import plantillas
-from app.rutas import activos, rondas
+from app.rutas import activos, registro, rondas
 from app.seguridad import FUNCIONES_POR_ROL, NoAutenticado, autenticar, usuario_actual
 
 CARPETA_APP = Path(__file__).parent
@@ -34,6 +34,7 @@ app.mount("/static", StaticFiles(directory=CARPETA_APP / "static"), name="static
 # Cada grupo de pantallas está en su propio archivo dentro de app/rutas.
 app.include_router(activos.router)
 app.include_router(rondas.router)
+app.include_router(registro.router)
 
 
 @app.exception_handler(NoAutenticado)

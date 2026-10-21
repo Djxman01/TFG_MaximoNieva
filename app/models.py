@@ -259,3 +259,86 @@ class RondaActivo(Base):
     ronda: Mapped[Ronda] = relationship(back_populates="activos")
     activo: Mapped[Activo] = relationship()
     criticidad: Mapped[CriticidadActivo | None] = relationship()
+    verificacion: Mapped["Verificacion | None"] = relationship(
+        back_populates="ronda_activo", cascade="all, delete-orphan"
+    )
+
+
+RESULTADOS = {"sin_hallazgos": "Sin hallazgos", "con_hallazgos": "Con hallazgos"}
+
+
+class Verificacion(Base):
+    """Verificación de un activo inspeccionado durante la ronda (HU-009).
+
+    Un activo "no accesible" no tiene verificación: eso se registra en RondaActivo.
+    """
+
+    __tablename__ = "verificacion"
+    __table_args__ = (
+        CheckConstraint(
+            "resultado IN ('sin_hallazgos', 'con_hallazgos')", name="ck_verificacion_resultado"
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    # unique=True: una sola verificación por activo de la ronda.
+    ronda_activo_id: Mapped[int] = mapped_column(
+        ForeignKey("ronda_activo.id", ondelete="CASCADE"), unique=True
+    )
+    usuario_id: Mapped[int] = mapped_column(ForeignKey("usuario.id"))
+    # Fecha y hora en que el operador hizo la inspección. La indica él mismo
+    # (por defecto, "ahora"), porque puede cargarla después si no tenía conexión.
+    fecha_hora: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    # Fecha y hora en que el registro llegó al servidor.
+    fecha_hora_recepcion: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    resultado: Mapped[str] = mapped_column(String(20))
+    observaciones: Mapped[str] = mapped_column(Text, default="")
+    # Identificador generado al abrir el formulario: si el mismo envío llega dos
+    # veces (por ejemplo, un reintento), la segunda vez no se duplica.
+    uuid_cliente: Mapped[str] = mapped_column(String(36), unique=True)
+
+    ronda_activo: Mapped[RondaActivo] = relationship(back_populates="verificacion")
+    usuario: Mapped[Usuario] = relationship()
+    evidencias: Mapped[list["Evidencia"]] = relationship(
+        back_populates="verificacion", cascade="all, delete-orphan", order_by="Evidencia.id"
+    )
+    hallazgos: Mapped[list["Hallazgo"]] = relationship(
+        back_populates="verificacion", cascade="all, delete-orphan", order_by="Hallazgo.id"
+    )
+
+
+class Evidencia(Base):
+    """Archivo (fotografía) que respalda una verificación (HU-009 c2).
+
+    El archivo se guarda en el volumen de evidencia; acá queda su ruta relativa.
+    """
+
+    __tablename__ = "evidencia"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    verificacion_id: Mapped[int] = mapped_column(
+        ForeignKey("verificacion.id", ondelete="CASCADE")
+    )
+    tipo: Mapped[str] = mapped_column(String(20), default="foto")
+    ruta_archivo: Mapped[str] = mapped_column(String(300))
+    fecha_hora: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+    verificacion: Mapped[Verificacion] = relationship(back_populates="evidencias")
+
+
+class Hallazgo(Base):
+    """Anomalía observada en una verificación (HU-010)."""
+
+    __tablename__ = "hallazgo"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    verificacion_id: Mapped[int] = mapped_column(
+        ForeignKey("verificacion.id", ondelete="CASCADE")
+    )
+    tipo: Mapped[str] = mapped_column(String(100))
+    descripcion: Mapped[str] = mapped_column(Text)
+    # Marca la derivación al procedimiento correctivo. El sistema la registra;
+    # no gestiona la emergencia.
+    requiere_atencion_inmediata: Mapped[bool] = mapped_column(Boolean, default=False)
+
+    verificacion: Mapped[Verificacion] = relationship(back_populates="hallazgos")

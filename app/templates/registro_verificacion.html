@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+
+{% block titulo %}Registro · {{ parada.activo.codigo }}{% endblock %}
+{% block clase_pantalla %}tableta{% endblock %}
+
+{% block contenido %}
+<div class="encabezado">
+  <div class="miga"><a href="/registro">Rondas a ejecutar</a><span>›</span><a href="/registro/{{ ronda.id }}">{{ ronda.numero }}</a><span>›</span>{{ parada.activo.codigo }}</div>
+  <h1>Registro de verificación</h1>
+</div>
+
+<div class="tira" style="display:block">
+  <div style="display:flex; align-items:center; justify-content:space-between">
+    <div>
+      <div class="nombre">{{ parada.activo.codigo }} <span class="marca {{ parada.criticidad.categoria }}" style="margin-left:6px">{{ parada.criticidad.categoria | titulo }}</span></div>
+      <div class="meta">Parada {{ posicion }} de {{ avance.total }} · {{ parada.activo.tipo }} · Acceso: {{ parada.activo.condicion_acceso or "sin datos" }}</div>
+    </div>
+    <span class="chip">{{ avance.porcentaje }} % de la ronda</span>
+  </div>
+  <div class="avance" style="margin-top:12px"><span style="width:{{ avance.porcentaje }}%"></span></div>
+</div>
+
+{% if registrado %}<p class="aviso exito" role="status" style="margin:14px 20px 0">{{ registrado }}: registro guardado. Sigue {{ parada.activo.codigo }}.</p>{% endif %}
+{% if errores %}
+<div class="aviso error" role="alert" style="margin:14px 20px 0">
+  <b>No se pudo guardar:</b>
+  <ul style="margin:6px 0 0; padding-left:18px">{% for error in errores %}<li>{{ error }}</li>{% endfor %}</ul>
+</div>
+{% endif %}
+
+<form method="post" action="/registro/{{ ronda.id }}/{{ parada.id }}" enctype="multipart/form-data" class="form-registro">
+<input type="hidden" name="uuid_envio" value="{{ datos.uuid }}">
+<div class="cuerpo">
+  <section class="tarjeta">
+    <h2>Resultado de la verificación</h2>
+
+    <div class="grupo-campo">
+      <label>Estado del activo en la ronda</label>
+      <div class="opciones">
+        <label class="opcion">
+          <input type="radio" name="estado" value="inspeccionado" {% if datos.estado == "inspeccionado" %}checked{% endif %}>
+          <span class="punto"></span>
+          <span><span class="rot">Inspeccionado</span><span class="det">El activo pudo verificarse</span></span>
+        </label>
+        <label class="opcion">
+          <input type="radio" name="estado" value="no_accesible" {% if datos.estado == "no_accesible" %}checked{% endif %}>
+          <span class="punto"></span>
+          <span><span class="rot">No accesible</span><span class="det">No fue posible llegar al activo</span></span>
+        </label>
+      </div>
+    </div>
+
+    <div class="grupo-campo campo">
+      <label for="fecha_hora">Fecha y hora de la inspección</label>
+      <input type="datetime-local" id="fecha_hora" name="fecha_hora" value="{{ datos.fecha_hora }}">
+      <div class="nota">Por defecto, ahora. Si cargás el registro más tarde (por ejemplo, porque no había conexión), poné la hora en que hiciste la inspección.</div>
+    </div>
+
+    <div class="solo-inspeccionado">
+      <div class="grupo-campo">
+        <label>Resultado</label>
+        <div class="opciones">
+          <label class="opcion">
+            <input type="radio" name="resultado" value="sin_hallazgos" {% if datos.resultado == "sin_hallazgos" %}checked{% endif %}>
+            <span class="punto"></span>
+            <span><span class="rot">Sin hallazgos</span><span class="det">No se identificaron anomalías</span></span>
+          </label>
+          <label class="opcion">
+            <input type="radio" name="resultado" value="con_hallazgos" {% if datos.resultado == "con_hallazgos" %}checked{% endif %}>
+            <span class="punto"></span>
+            <span><span class="rot">Con hallazgos</span><span class="det">Se identificaron anomalías</span></span>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <div class="grupo-campo campo">
+      <label for="observaciones">Observaciones <span class="nota-en-linea">(obligatorias si el activo no fue accesible)</span></label>
+      <textarea id="observaciones" name="observaciones" rows="3" maxlength="500">{{ datos.observaciones }}</textarea>
+    </div>
+  </section>
+
+  <section class="tarjeta solo-inspeccionado">
+    <h2>Evidencia</h2>
+    <p class="ayuda">Fotografías que respaldan la verificación del activo (hasta 10, de 10 MB cada una).</p>
+    <label class="zona-carga" for="evidencias">Tomar fotografía o adjuntar archivo</label>
+    <input type="file" id="evidencias" name="evidencias" accept="image/*" capture="environment" multiple class="selector-archivos">
+  </section>
+
+  <section class="tarjeta panel-hallazgo">
+    <h2>Hallazgo</h2>
+    <div class="fila-campos" style="margin-top:14px">
+      <div class="campo" style="max-width:280px">
+        <label for="hallazgo_tipo">Tipo</label>
+        <input type="text" id="hallazgo_tipo" name="hallazgo_tipo" maxlength="100" value="{{ datos.hallazgo_tipo }}" placeholder="Por ejemplo: derrame de hidrocarburo">
+      </div>
+      <div class="campo">
+        <label for="hallazgo_descripcion">Descripción</label>
+        <textarea id="hallazgo_descripcion" name="hallazgo_descripcion" rows="2" maxlength="1000">{{ datos.hallazgo_descripcion }}</textarea>
+      </div>
+    </div>
+    <label class="factor" style="margin-top:14px">
+      <input type="checkbox" name="atencion_inmediata" value="true" {% if datos.atencion_inmediata %}checked{% endif %}>
+      <span class="caja"></span>
+      <span class="texto">
+        <span class="principal">Requiere atención inmediata</span>
+        <span class="evidencia">Pérdida de contención primaria · deriva al procedimiento correctivo. El aviso se da por el procedimiento de la operación; el sistema lo deja registrado.</span>
+      </span>
+    </label>
+  </section>
+
+  <div class="acciones" style="margin-top:4px; justify-content:flex-end">
+    <a class="boton" style="flex:none; width:150px" href="/registro/{{ ronda.id }}">Cancelar</a>
+    <button type="submit" class="boton primario" style="flex:none; width:220px">Guardar y continuar</button>
+  </div>
+</div>
+</form>
+{% endblock %}

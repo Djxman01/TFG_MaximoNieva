@@ -5,12 +5,16 @@ entregarle algo ya preparado. La prueba lo pide poniendo el nombre del
 fixture como parámetro.
 """
 
+import functools
 import os
+import tempfile
 
 # La aplicación exige estas variables al importarse. En las pruebas se usan
-# valores propios: una base SQLite en memoria y una clave que no es la real.
+# valores propios: una base SQLite en memoria, una clave que no es la real y una
+# carpeta temporal para los archivos de evidencia.
 os.environ.setdefault("DATABASE_URL", "sqlite://")
 os.environ.setdefault("SECRET_KEY", "clave-solo-para-pruebas")
+os.environ.setdefault("EVIDENCIA_DIR", tempfile.mkdtemp(prefix="evidencia_pruebas_"))
 
 import pytest
 from fastapi.testclient import TestClient
@@ -67,12 +71,18 @@ def crear_usuario(db):
     return _crear
 
 
-@pytest.fixture
-def semilla(db):
-    """Carga los datos de la demo (usuarios, criterios y activos) en la base de prueba."""
-    from app.semilla import cargar_datos_semilla
+# bcrypt es lento a propósito (costo 12). Para que las pruebas no tarden de más,
+# el hash de cada contraseña de los datos semilla se calcula una sola vez.
+_hash_en_cache = functools.cache(generar_hash)
 
-    cargar_datos_semilla(db)
+
+@pytest.fixture
+def semilla(db, monkeypatch):
+    """Carga los datos de la demo (usuarios, criterios y activos) en la base de prueba."""
+    import app.semilla
+
+    monkeypatch.setattr(app.semilla, "generar_hash", _hash_en_cache)
+    app.semilla.cargar_datos_semilla(db)
     return db
 
 
