@@ -2,6 +2,12 @@
 
 {% block titulo %}Planificación · Ronda {{ ronda.numero }}{% endblock %}
 
+{% block cabecera %}
+<link rel="stylesheet" href="/static/vendor/leaflet-1.9.4/leaflet.css">
+<script src="/static/vendor/leaflet-1.9.4/leaflet.js" defer></script>
+<script src="/static/mapa.js" defer></script>
+{% endblock %}
+
 {% block contenido %}
 <div class="encabezado">
   <div class="miga"><a href="/rondas">Rondas</a><span>›</span>{{ ronda.numero }}</div>
@@ -18,7 +24,7 @@
 
 <div class="cuerpo">
   <div class="col-izq">
-    {% block mapa %}{% endblock %}
+    {% if ronda.activos %}{% include "_mapa.html" %}{% endif %}
     <section class="tarjeta">
       <h2>Activos de la ronda</h2>
       <p class="ayuda">Marcá los activos que forman parte de la ronda. Al cambiar la selección, la propuesta de orden se vuelve a generar.</p>

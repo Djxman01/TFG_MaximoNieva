@@ -1,0 +1,14 @@
+{# Mapa de la ronda. Necesita la variable "mapa" que arma la ruta (ver datos_mapa). #}
+<section class="tarjeta">
+  <h2>Mapa de activos</h2>
+  <p class="ayuda">El color indica la criticidad; el número, la posición en el recorrido{% if mapa.titulo_ruta %} ({{ mapa.titulo_ruta }}){% endif %}. La línea une las paradas en línea recta: no representa los caminos reales.</p>
+  <div id="mapa" class="mapa-leaflet" role="img" aria-label="Mapa con la base de origen y los activos de la ronda"></div>
+  <div class="referencias">
+    <span><i style="background:#C0442E"></i>Alta</span>
+    <span><i style="background:#C8890E"></i>Media</span>
+    <span><i style="background:#5A7D5A"></i>Baja</span>
+    <span><i style="background:#8A8984"></i>Sin evaluar</span>
+    <span><i class="hueco"></i>Fuera del recorrido</span>
+  </div>
+</section>
+<script id="datos-mapa" type="application/json">{{ mapa.datos | tojson }}</script>

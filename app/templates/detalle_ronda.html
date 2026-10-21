@@ -4,6 +4,12 @@
 
 {% macro porcentaje(valor) %}{{ (valor * 100) | round | int }} %{% endmacro %}
 
+{% block cabecera %}
+<link rel="stylesheet" href="/static/vendor/leaflet-1.9.4/leaflet.css">
+<script src="/static/vendor/leaflet-1.9.4/leaflet.js" defer></script>
+<script src="/static/mapa.js" defer></script>
+{% endblock %}
+
 {% block contenido %}
 <div class="encabezado">
   <div class="miga"><a href="/rondas">Rondas</a><span>›</span>{{ ronda.numero }}</div>
@@ -18,6 +24,7 @@
 
 <div class="cuerpo">
   <div class="col-izq">
+    {% include "_mapa.html" %}
     <section class="tarjeta">
       <h2>Recorrido y estado de atención</h2>
       <p class="ayuda">Orden confirmado. El estado se actualiza a medida que el operador registra cada activo.</p>

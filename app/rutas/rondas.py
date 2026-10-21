@@ -20,6 +20,7 @@ from app.catalogos import (
 )
 from app.database import obtener_db
 from app.models import CONDICIONES, ESTADOS_RONDA, Activo, Ronda, RondaActivo, Usuario
+from app.coordenadas import a_lat_lon
 from app.cobertura import ActivoParaCobertura, calcular_cobertura
 from app.ordenamiento import Candidato, minutos_de_tramo, distancia, proponer_orden
 from app.plantillas import plantillas
@@ -180,8 +181,52 @@ def datos_propuesta(ronda: Ronda) -> dict | None:
     }
 
 
+def datos_mapa(ronda: Ronda, campo: str | None) -> dict:
+    """Datos para el mapa de Leaflet, ya convertidos a latitud y longitud.
+
+    `campo` indica qué orden se dibuja: "orden_propuesto", "orden_planificado" o
+    None (todavía no hay propuesta: solo se ubican los activos).
+    """
+    latitud, longitud = a_lat_lon(ronda.origen_x, ronda.origen_y)
+    puntos = []
+    for ronda_activo in ronda.activos:
+        activo = ronda_activo.activo
+        if ronda_activo.criticidad is not None:
+            categoria = ronda_activo.criticidad.categoria
+        else:
+            vigente = activo.criticidad_vigente()
+            categoria = vigente.categoria if vigente else "sin"
+        orden = getattr(ronda_activo, campo) if campo else None
+        lat, lon = a_lat_lon(activo.coordenada_x, activo.coordenada_y)
+        puntos.append(
+            {
+                "codigo": activo.codigo,
+                "lat": lat,
+                "lon": lon,
+                "categoria": categoria,
+                "orden": orden,
+                "excluido": campo is not None and orden is None,
+            }
+        )
+    con_orden = sorted((p for p in puntos if p["orden"]), key=lambda p: p["orden"])
+    titulos = {"orden_propuesto": "orden propuesto", "orden_planificado": "orden confirmado"}
+    return {
+        "titulo_ruta": titulos.get(campo, ""),
+        "datos": {
+            "origen": {
+                "nombre": nombre_de_base(ronda.origen_x, ronda.origen_y),
+                "lat": latitud,
+                "lon": longitud,
+            },
+            "puntos": puntos,
+            "ruta": [[p["lat"], p["lon"]] for p in con_orden],
+        },
+    }
+
+
 def contexto_planificacion(db: Session, ronda: Ronda, usuario: Usuario) -> dict:
     return {
+        "mapa": datos_mapa(ronda, "orden_propuesto" if tiene_propuesta(ronda) else None),
         "usuario": usuario,
         "ronda": ronda,
         "seleccionables": activos_seleccionables(db),
@@ -683,6 +728,7 @@ def ver_detalle(
             # Orden en que la ronda se ejecutó realmente (HU-011, sección 4.5).
             "ejecucion": sorted(atendidas, key=lambda ra: ra.fecha_hora_atencion),
             "verificaciones": [ra.verificacion for ra in ronda.activos if ra.verificacion],
+            "mapa": datos_mapa(ronda, "orden_planificado"),
         }
     )
     return plantillas.TemplateResponse(request, "detalle_ronda.html", contexto)

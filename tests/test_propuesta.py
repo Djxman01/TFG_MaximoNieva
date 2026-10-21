@@ -77,3 +77,32 @@ def test_con_mas_tiempo_entran_todos(como_lider, semilla):
 def test_el_operador_no_puede_generar(como_operador):
     # El permiso se controla antes de buscar la ronda.
     assert como_operador.post("/rondas/1/propuesta").status_code == 403
+
+
+def datos_del_mapa(html):
+    import json
+    import re
+
+    bloque = re.search(r'<script id="datos-mapa" type="application/json">(.*?)</script>', html, re.S)
+    return json.loads(bloque.group(1))
+
+
+def test_el_mapa_ubica_los_activos_y_el_recorrido_propuesto(como_lider, semilla):
+    ronda = crear_ronda(como_lider, semilla)
+    generar(como_lider, semilla, ronda)
+    mapa = datos_del_mapa(como_lider.get(f"/rondas/{ronda.id}").text)
+    assert mapa["origen"]["nombre"] == "Base Norte"
+    assert len(mapa["puntos"]) == 5
+    assert len(mapa["ruta"]) == 4  # C-07 no forma parte del recorrido
+    c07 = next(p for p in mapa["puntos"] if p["codigo"] == "Pozo C-07")
+    assert c07["excluido"] is True
+    # Coordenadas convertidas a latitud y longitud dentro de la faja 2.
+    assert -32 < mapa["origen"]["lat"] < -31
+    assert -69.5 < mapa["origen"]["lon"] < -68.5
+
+
+def test_sin_propuesta_el_mapa_muestra_los_activos_sin_numero(como_lider, semilla):
+    ronda = crear_ronda(como_lider, semilla)
+    mapa = datos_del_mapa(como_lider.get(f"/rondas/{ronda.id}").text)
+    assert mapa["ruta"] == []
+    assert all(p["orden"] is None and not p["excluido"] for p in mapa["puntos"])
