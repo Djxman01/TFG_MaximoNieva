@@ -1,8 +1,51 @@
 <section class="tarjeta">
   <h2>Orden propuesto por el sistema</h2>
+  <p class="ayuda">La propuesta es revisable. El orden definitivo lo confirma el responsable.</p>
+  <div class="regla-linea">
+    <b>Regla de ordenamiento.</b> Criticidad descendente y, dentro de cada nivel, el activo
+    más cercano desde la posición actual. A igual criticidad y distancia, primero el activo
+    sin telesupervisión. Los activos que no entran en el tiempo disponible se saltean.
+  </div>
+
   {% if not ronda.activos %}
   <p class="ayuda">Primero elegí los activos de la ronda y guardá la selección.</p>
+  {% elif not propuesta %}
+  <p class="ayuda">{{ ronda.activos | length }} activos seleccionados. Todavía no se generó la propuesta.</p>
   {% else %}
-  <p class="ayuda">{{ ronda.activos | length }} activos seleccionados.</p>
+    {% for parada in propuesta.paradas %}
+    <div class="fila-orden">
+      <span class="num">{{ parada.orden }}</span>
+      <span class="nom">{{ parada.ra.activo.codigo }} <em>· {{ parada.km | round(1) }} km · llega al minuto {{ (parada.minutos_acumulados - ronda.duracion_inspeccion) | round | int }}</em></span>
+      <span class="marca {{ parada.ra.criticidad.categoria }}">{{ parada.ra.criticidad.categoria | titulo }}</span>
+    </div>
+    {% endfor %}
+    {% for ra in propuesta.excluidos %}
+    <div class="fila-orden excluida">
+      <span class="num">—</span>
+      <span class="nom">{{ ra.activo.codigo }} <em>— fuera por tiempo disponible</em></span>
+      <span class="marca {{ ra.criticidad.categoria }}">{{ ra.criticidad.categoria | titulo }}</span>
+    </div>
+    {% endfor %}
+    <div style="margin-top:16px">
+      <div class="total">
+        <span>Tiempo disponible</span>
+        <span class="cifra">{{ ronda.tiempo_disponible }} min</span>
+      </div>
+      <div class="total destacado">
+        <span>Tiempo estimado del recorrido</span>
+        <span class="cifra">{{ propuesta.total | round | int }} min</span>
+      </div>
+    </div>
   {% endif %}
 </section>
+
+{% if ronda.estado == "borrador" and ronda.activos %}
+<div class="acciones">
+  <form method="post" action="/rondas/{{ ronda.id }}/propuesta" style="flex:1; display:flex">
+    <button type="submit" class="boton {% if not propuesta %}primario{% endif %}">{{ "Volver a generar la propuesta" if propuesta else "Generar propuesta" }}</button>
+  </form>
+  {% if propuesta %}
+  <a class="boton primario" href="/rondas/{{ ronda.id }}/revision">Revisar y confirmar</a>
+  {% endif %}
+</div>
+{% endif %}
