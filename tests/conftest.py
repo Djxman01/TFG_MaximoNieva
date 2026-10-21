@@ -23,7 +23,8 @@ from app.main import app
 from app.models import Usuario
 from app.seguridad import generar_hash
 
-CLAVE_DE_PRUEBA = "Prueba1234"
+# Cumple la política NIST: 15 caracteres o más y no está en la lista de bloqueo.
+CLAVE_DE_PRUEBA = "frase de prueba del prototipo"
 
 
 @pytest.fixture

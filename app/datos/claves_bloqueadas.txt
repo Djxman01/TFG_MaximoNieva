@@ -1,0 +1,58 @@
+# Lista de bloqueo de contraseñas (NIST SP 800-63B-4, sección 3.1.1.2).
+# Una contraseña por línea. Se compara la contraseña completa, sin distinguir
+# mayúsculas de minúsculas. Las líneas que empiezan con # se ignoran.
+#
+# Contraseñas comunes de 15 caracteres o más, frecuentes en filtraciones públicas:
+123456789012345
+1234567890123456
+12345678901234567890
+123456789123456789
+000000000000000
+111111111111111
+aaaaaaaaaaaaaaa
+qwertyuiopasdfg
+qwertyuiopasdfgh
+qwertyuiopasdfghjkl
+qwertyuiopasdfghjklzxcvbnm
+1qaz2wsx3edc4rfv
+1q2w3e4r5t6y7u8i
+q1w2e3r4t5y6u7i8
+zaq12wsxcde34rfv
+passwordpassword
+password1234567
+password12345678
+contraseña12345
+contrasena12345
+contraseñacontraseña
+iloveyouiloveyou
+abcdefghijklmno
+abcdefghijklmnopqrstuvwxyz
+abc123abc123abc
+asdfghjklasdfgh
+administrador123
+administrator123
+bienvenido12345
+bienvenidos2026
+holaholaholahola
+argentina123456
+argentinaargentina
+# Palabras propias del sistema y de la operación:
+rondasrondasrondas
+rondas de inspeccion
+rondasdeinspeccion
+rondas2026rondas2026
+inspeccioninspeccion
+inspeccion2026inspeccion
+inspección de pozos
+inspecciondepozos
+criticidadcriticidad
+sistemaderondas
+sistema de rondas
+sistemaderondas2026
+lideroperaciones
+liderdeoperaciones
+lider de operaciones
+operadordecampo
+operador de campo
+operadoroperador
+petroleopetroleo

@@ -27,10 +27,10 @@ Requiere Docker.
 3. Crear los usuarios (la contraseña se pide por teclado):
 
    ```bash
-   docker compose exec app python -m scripts.crear_usuario --nombre "Nombre Apellido" --email correo@ejemplo.com --rol supervisor
+   docker compose exec app python -m scripts.crear_usuario --nombre "Nombre Apellido" --email correo@ejemplo.com --rol lider
    ```
 
-   Los roles posibles son `supervisor` y `operador`.
+   Los roles posibles son `lider` (Líder de Operaciones) y `operador`.
 
 4. Abrir <http://localhost:8000>.
 
@@ -41,14 +41,18 @@ Para detener los servicios sin perder los datos: `docker compose stop`.
 - **Identificación.** Correo electrónico (único) y contraseña.
 - **Almacenamiento de la contraseña.** Se guarda solo el hash de bcrypt (costo 12, con sal
   aleatoria por usuario). La contraseña en claro no se almacena ni se registra.
-- **Política de contraseñas.** Mínimo 8 caracteres, con al menos una mayúscula, una minúscula
-  y un número. Se valida al dar de alta el usuario.
+- **Política de contraseñas** (NIST SP 800-63B-4, sección 3.1.1.2). Entre 15 y 64
+  caracteres, sin reglas de composición: se aceptan espacios, acentos y cualquier carácter,
+  así que sirven las frases. Se rechazan las contraseñas de una lista de bloqueo
+  (`app/datos/claves_bloqueadas.txt`) y las que superan los 72 bytes que admite bcrypt. La
+  contraseña se normaliza a Unicode NFC antes de calcular el hash. No vence. Se valida al dar
+  de alta el usuario.
 - **Sesión.** Cookie firmada con una clave secreta, no accesible desde JavaScript, con una
   duración de 8 horas. Si la cookie se modifica, la firma deja de coincidir y se descarta.
 - **Mensaje de error.** Ante un ingreso fallido se informa "Correo o contraseña incorrectos",
   sin indicar cuál de los dos datos falló.
-- **Roles.** `supervisor` (supervisor de campo: define criterios, evalúa criticidad, planifica
-  y confirma rondas, consulta cobertura y trazabilidad) y `operador` (consulta activos y
+- **Roles.** `lider` (Líder de Operaciones: evalúa criticidad, planifica y confirma rondas,
+  consulta cobertura y trazabilidad) y `operador` (consulta activos y
   registra verificaciones, evidencia y hallazgos). Cada ruta declara qué roles la pueden usar;
   un rol no habilitado recibe un rechazo (código 403) y quien no inició sesión es enviado a
   la pantalla de ingreso.
@@ -57,8 +61,9 @@ Para detener los servicios sin perder los datos: `docker compose stop`.
 - **Base de datos.** No publica ningún puerto: solo la aplicación puede conectarse. Las
   claves de la base y de la sesión están en el archivo `.env`, fuera del repositorio.
 
-No implementado: bloqueo por intentos fallidos, vencimiento de contraseñas, recuperación de
-contraseña y HTTPS.
+No implementado (se declara como política del proyecto): bloqueo por intentos fallidos,
+cambio obligatorio en el primer ingreso, pantalla de administración de usuarios, recuperación
+de contraseña y HTTPS.
 
 ## Respaldo
 

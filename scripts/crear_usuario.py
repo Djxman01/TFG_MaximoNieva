@@ -1,7 +1,7 @@
 """Alta de un usuario desde la terminal.
 
 Uso:
-    python -m scripts.crear_usuario --nombre "Ana Pérez" --email ana@ejemplo.com --rol supervisor
+    python -m scripts.crear_usuario --nombre "Ana Pérez" --email ana@ejemplo.com --rol lider
 
 La contraseña se pide por teclado y no queda escrita en el historial de comandos.
 """

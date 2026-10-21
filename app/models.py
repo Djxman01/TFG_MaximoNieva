@@ -10,7 +10,7 @@ class Usuario(Base):
     __tablename__ = "usuario"
     __table_args__ = (
         # La base rechaza cualquier rol que no sea uno de estos dos.
-        CheckConstraint("rol IN ('supervisor', 'operador')", name="ck_usuario_rol"),
+        CheckConstraint("rol IN ('lider', 'operador')", name="ck_usuario_rol"),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)

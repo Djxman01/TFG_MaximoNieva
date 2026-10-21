@@ -6,14 +6,14 @@ from sqlalchemy.exc import IntegrityError
 
 from app.main import app
 from app.models import Usuario
-from app.seguridad import ROL_SUPERVISOR, requiere_rol
+from app.seguridad import ROL_LIDER, requiere_rol
 from tests.conftest import CLAVE_DE_PRUEBA
 
 
 # Ruta que existe solo para estas pruebas: sirve para comprobar que
 # requiere_rol deja pasar a un rol y frena al otro.
-@app.get("/prueba/solo-supervisor")
-def ruta_solo_supervisor(usuario: Usuario = Depends(requiere_rol(ROL_SUPERVISOR))):
+@app.get("/prueba/solo-lider")
+def ruta_solo_lider(usuario: Usuario = Depends(requiere_rol(ROL_LIDER))):
     return {"rol": usuario.rol}
 
 
@@ -32,20 +32,20 @@ def test_sin_sesion_el_inicio_redirige_al_ingreso(cliente):
 
 
 def test_ingreso_correcto_lleva_al_inicio(cliente, crear_usuario):
-    crear_usuario("supervisor@ejemplo.com", "supervisor", nombre="Ana Pérez")
-    respuesta = ingresar(cliente, "supervisor@ejemplo.com")
+    crear_usuario("lider@ejemplo.com", "lider", nombre="Ana Pérez")
+    respuesta = ingresar(cliente, "lider@ejemplo.com")
     assert respuesta.status_code == 303
     assert respuesta.headers["location"] == "/"
 
     inicio = cliente.get("/")
     assert inicio.status_code == 200
     assert "Ana Pérez" in inicio.text
-    assert "Supervisor de campo" in inicio.text
+    assert "Líder de Operaciones" in inicio.text
 
 
 def test_ingreso_con_clave_incorrecta_es_rechazado(cliente, crear_usuario):
-    crear_usuario("supervisor@ejemplo.com", "supervisor")
-    respuesta = ingresar(cliente, "supervisor@ejemplo.com", clave="Incorrecta1")
+    crear_usuario("lider@ejemplo.com", "lider")
+    respuesta = ingresar(cliente, "lider@ejemplo.com", clave="otra frase que no es la clave")
     assert respuesta.status_code == 401
     assert "Correo o contraseña incorrectos" in respuesta.text
     # No quedó sesión iniciada.
@@ -53,8 +53,8 @@ def test_ingreso_con_clave_incorrecta_es_rechazado(cliente, crear_usuario):
 
 
 def test_el_mensaje_de_error_no_revela_si_el_correo_existe(cliente, crear_usuario):
-    crear_usuario("supervisor@ejemplo.com", "supervisor")
-    clave_mal = ingresar(cliente, "supervisor@ejemplo.com", clave="Incorrecta1")
+    crear_usuario("lider@ejemplo.com", "lider")
+    clave_mal = ingresar(cliente, "lider@ejemplo.com", clave="otra frase que no es la clave")
     correo_mal = ingresar(cliente, "nadie@ejemplo.com")
     assert clave_mal.status_code == correo_mal.status_code == 401
     assert "Correo o contraseña incorrectos" in correo_mal.text
@@ -77,27 +77,27 @@ def test_cada_rol_ve_sus_propias_funciones(cliente, crear_usuario):
     assert "Planificar rondas" not in inicio.text
 
 
-def test_ruta_de_supervisor_acepta_al_supervisor(cliente, crear_usuario):
-    crear_usuario("supervisor@ejemplo.com", "supervisor")
-    ingresar(cliente, "supervisor@ejemplo.com")
-    assert cliente.get("/prueba/solo-supervisor").status_code == 200
+def test_ruta_de_lider_acepta_al_lider(cliente, crear_usuario):
+    crear_usuario("lider@ejemplo.com", "lider")
+    ingresar(cliente, "lider@ejemplo.com")
+    assert cliente.get("/prueba/solo-lider").status_code == 200
 
 
-def test_ruta_de_supervisor_rechaza_al_operador(cliente, crear_usuario):
+def test_ruta_de_lider_rechaza_al_operador(cliente, crear_usuario):
     crear_usuario("operador@ejemplo.com", "operador")
     ingresar(cliente, "operador@ejemplo.com")
-    assert cliente.get("/prueba/solo-supervisor").status_code == 403
+    assert cliente.get("/prueba/solo-lider").status_code == 403
 
 
-def test_ruta_de_supervisor_sin_sesion_redirige_al_ingreso(cliente):
-    respuesta = cliente.get("/prueba/solo-supervisor", follow_redirects=False)
+def test_ruta_de_lider_sin_sesion_redirige_al_ingreso(cliente):
+    respuesta = cliente.get("/prueba/solo-lider", follow_redirects=False)
     assert respuesta.status_code == 303
 
 
 def test_no_puede_haber_dos_usuarios_con_el_mismo_correo(db, crear_usuario):
-    crear_usuario("supervisor@ejemplo.com", "supervisor")
+    crear_usuario("lider@ejemplo.com", "lider")
     with pytest.raises(IntegrityError):
-        crear_usuario("supervisor@ejemplo.com", "operador")
+        crear_usuario("lider@ejemplo.com", "operador")
 
 
 def test_la_base_rechaza_un_rol_desconocido(db, crear_usuario):
