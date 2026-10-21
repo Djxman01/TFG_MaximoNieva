@@ -32,3 +32,18 @@ MATRIZ = {
 
 def calcular_criticidad(probabilidad: str, consecuencia: str) -> str:
     return MATRIZ[(probabilidad, consecuencia)]
+
+
+def evaluar_factores(cantidad_probabilidad: int, niveles_consecuencia: list) -> dict:
+    """Aplica las tres reglas juntas a los factores marcados.
+
+    Recibe cuántos factores de probabilidad se marcaron y la lista de niveles
+    de los factores de consecuencia marcados (por ejemplo ["ambiente"]).
+    """
+    probabilidad = calcular_probabilidad(cantidad_probabilidad)
+    consecuencia = calcular_consecuencia(niveles_consecuencia)
+    return {
+        "probabilidad": probabilidad,
+        "consecuencia": consecuencia,
+        "categoria": calcular_criticidad(probabilidad, consecuencia),
+    }

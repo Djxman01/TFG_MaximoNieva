@@ -65,3 +65,38 @@ def crear_usuario(db):
         return usuario
 
     return _crear
+
+
+@pytest.fixture
+def semilla(db):
+    """Carga los datos de la demo (usuarios, criterios y activos) en la base de prueba."""
+    from app.semilla import cargar_datos_semilla
+
+    cargar_datos_semilla(db)
+    return db
+
+
+def iniciar_sesion(cliente, email, clave=CLAVE_DE_PRUEBA):
+    """Ingresa al sistema con el navegador simulado."""
+    respuesta = cliente.post(
+        "/login", data={"email": email, "clave": clave}, follow_redirects=False
+    )
+    assert respuesta.status_code == 303, "no se pudo iniciar sesión"
+
+
+@pytest.fixture
+def como_lider(cliente, semilla):
+    """Navegador con la sesión del Líder de Operaciones de los datos semilla."""
+    from app.semilla import USUARIOS
+
+    iniciar_sesion(cliente, USUARIOS[0]["email"], USUARIOS[0]["clave"])
+    return cliente
+
+
+@pytest.fixture
+def como_operador(cliente, semilla):
+    """Navegador con la sesión del Operador de los datos semilla."""
+    from app.semilla import USUARIOS
+
+    iniciar_sesion(cliente, USUARIOS[1]["email"], USUARIOS[1]["clave"])
+    return cliente
