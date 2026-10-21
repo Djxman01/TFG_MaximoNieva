@@ -1,10 +1,12 @@
+import pytest
+
 from app.criticidad import calcular_probabilidad
 from app.criticidad import calcular_consecuencia
+from app.criticidad import calcular_criticidad
 
 
 def test_sin_factores_la_probabilidad_es_baja():
     assert calcular_probabilidad(0) == "baja"
-    
 
 def test_un_factor_la_probabilidad_es_media():
     assert calcular_probabilidad(1) == "media"
@@ -36,3 +38,23 @@ def test_dos_factores_la_consecuencia_es_alta():
 
 def test_sin_factores_la_consecuencia_es_baja():
     assert calcular_consecuencia([]) == "baja"
+
+
+# Las nueve celdas de la matriz. Cada línea es un caso:
+# probabilidad, consecuencia y la criticidad que se espera.
+@pytest.mark.parametrize(
+    "probabilidad, consecuencia, esperada",
+    [
+        ("alta", "baja", "media"),
+        ("alta", "media", "alta"),
+        ("alta", "alta", "alta"),
+        ("media", "baja", "baja"),
+        ("media", "media", "media"),
+        ("media", "alta", "alta"),
+        ("baja", "baja", "baja"),
+        ("baja", "media", "baja"),
+        ("baja", "alta", "media"),
+    ],
+)
+def test_matriz_de_criticidad(probabilidad, consecuencia, esperada):
+    assert calcular_criticidad(probabilidad, consecuencia) == esperada
