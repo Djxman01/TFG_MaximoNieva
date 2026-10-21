@@ -1,0 +1,40 @@
+{# Panel del resultado. Se dibuja con la pantalla y htmx lo vuelve a pedir
+   cada vez que cambia un factor, para mostrar la regla calculando en vivo. #}
+<section class="tarjeta" id="resultado">
+  <h2>Criticidad resultante</h2>
+  <div style="margin:12px 0 0">
+    <span class="distintivo-grande {{ resultado.categoria }}">{{ resultado.categoria | upper }}</span>
+  </div>
+  <div class="resumen">
+    <div>
+      <div class="rot">Probabilidad</div>
+      <div class="val">{{ resultado.probabilidad | titulo }}</div>
+    </div>
+    <div>
+      <div class="rot">Consecuencia</div>
+      <div class="val">{{ resultado.consecuencia | titulo }}</div>
+    </div>
+  </div>
+  <div class="ejes-cab">
+    <span>Probabilidad ↓</span>
+    <span>Consecuencia →</span>
+  </div>
+  <div class="matriz">
+    <div class="eje"></div>
+    <div class="eje">Baja</div>
+    <div class="eje">Media</div>
+    <div class="eje">Alta</div>
+    {% for p in ["alta", "media", "baja"] %}
+    <div class="eje fila">{{ p | titulo }}</div>
+    {% for c in ["baja", "media", "alta"] %}
+    {% set celda = matriz[(p, c)] %}
+    <div class="celda c-{{ celda }}{% if p == resultado.probabilidad and c == resultado.consecuencia %} activa{% endif %}">{{ celda | titulo }}</div>
+    {% endfor %}
+    {% endfor %}
+  </div>
+  <div class="regla">
+    <span class="rot">Regla definida para este prototipo</span>
+    <b>Probabilidad</b> — Alta: dos o más factores · Media: uno · Baja: ninguno<br>
+    <b>Consecuencia</b> — Alta: personas · Media: ambiente o producción · Baja: resto
+  </div>
+</section>

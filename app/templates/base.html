@@ -6,16 +6,31 @@
 <title>{% block titulo %}Sistema de Rondas de Inspección{% endblock %}</title>
 <link rel="stylesheet" href="/static/base.css">
 <link rel="stylesheet" href="/static/app.css">
+<script src="/static/vendor/htmx-2.0.11.min.js" defer></script>
+{% block cabecera %}{% endblock %}
 </head>
 <body>
 
-<div class="pantalla">
+<div class="pantalla {% block clase_pantalla %}{% endblock %}">
 
   <header class="barra">
-    <div class="marca">Sistema de Rondas de Inspección</div>
+    <div class="izquierda">
+      <a class="marca" href="/">{% block marca %}Sistema de Rondas de Inspección{% endblock %}</a>
+      {% if usuario %}
+      <nav class="menu">
+        {% if usuario.rol == "lider" %}
+        <a href="/rondas">Rondas</a>
+        <a href="/activos">Activos</a>
+        {% else %}
+        <a href="/registro">Rondas a ejecutar</a>
+        <a href="/activos">Activos</a>
+        {% endif %}
+      </nav>
+      {% endif %}
+    </div>
     {% if usuario %}
     <form class="sesion" method="post" action="/logout">
-      <span>{{ usuario.nombre }} · {{ nombre_rol }}</span>
+      <span>{{ usuario.nombre }} · {{ NOMBRES_DE_ROL[usuario.rol] }}</span>
       <button type="submit" class="enlace">Salir</button>
     </form>
     {% endif %}

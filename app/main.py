@@ -5,20 +5,16 @@ from pathlib import Path
 from fastapi import Depends, FastAPI, Form, Request
 from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
+from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.sessions import SessionMiddleware
 
 from app.config import DURACION_SESION, SECRET_KEY
 from app.database import obtener_db
 from app.models import Usuario
-from app.seguridad import (
-    FUNCIONES_POR_ROL,
-    NOMBRES_DE_ROL,
-    NoAutenticado,
-    autenticar,
-    usuario_actual,
-)
+from app.plantillas import plantillas
+from app.rutas import activos
+from app.seguridad import FUNCIONES_POR_ROL, NoAutenticado, autenticar, usuario_actual
 
 CARPETA_APP = Path(__file__).parent
 
@@ -34,13 +30,26 @@ app.add_middleware(
 )
 
 app.mount("/static", StaticFiles(directory=CARPETA_APP / "static"), name="static")
-plantillas = Jinja2Templates(directory=CARPETA_APP / "templates")
+
+# Cada grupo de pantallas está en su propio archivo dentro de app/rutas.
+app.include_router(activos.router)
 
 
 @app.exception_handler(NoAutenticado)
 def redirigir_al_ingreso(request: Request, error: NoAutenticado):
     """Quien no inició sesión es enviado a la pantalla de ingreso."""
     return RedirectResponse("/login", status_code=303)
+
+
+@app.exception_handler(StarletteHTTPException)
+def mostrar_error(request: Request, error: StarletteHTTPException):
+    """Muestra los errores (acceso denegado, página inexistente) como una página."""
+    return plantillas.TemplateResponse(
+        request,
+        "error.html",
+        {"codigo": error.status_code, "mensaje": error.detail},
+        status_code=error.status_code,
+    )
 
 
 @app.get("/login")
@@ -80,9 +89,5 @@ def inicio(request: Request, usuario: Usuario = Depends(usuario_actual)):
     return plantillas.TemplateResponse(
         request,
         "inicio.html",
-        {
-            "usuario": usuario,
-            "nombre_rol": NOMBRES_DE_ROL[usuario.rol],
-            "funciones": FUNCIONES_POR_ROL[usuario.rol],
-        },
+        {"usuario": usuario, "funciones": FUNCIONES_POR_ROL[usuario.rol]},
     )

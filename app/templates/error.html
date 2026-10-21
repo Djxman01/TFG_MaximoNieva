@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+
+{% block contenido %}
+<div class="cuerpo centrado">
+  <section class="tarjeta angosta">
+    <h2>{% if codigo == 403 %}Acceso no permitido{% elif codigo == 404 %}No encontrado{% else %}Error{% endif %}</h2>
+    <p class="ayuda">{{ mensaje }}</p>
+    <div class="acciones"><a class="boton" href="/">Volver al inicio</a></div>
+  </section>
+</div>
+{% endblock %}

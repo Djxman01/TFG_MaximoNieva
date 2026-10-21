@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+
+{% block titulo %}Evaluación de criticidad · {{ activo.codigo }}{% endblock %}
+
+{% block contenido %}
+<div class="encabezado">
+  <div class="miga"><a href="/activos">Activos</a><span>›</span>{{ activo.codigo }}</div>
+  <h1>Evaluación de criticidad</h1>
+</div>
+
+<div class="tira">
+  <div>
+    <div class="nombre">{{ activo.codigo }}</div>
+    <div class="meta">{{ activo.tipo }} · X (este) {{ activo.coordenada_x | metros }} — Y (norte) {{ activo.coordenada_y | metros }} (POSGAR 2007, faja 2)</div>
+  </div>
+  <div class="chips">
+    <span class="chip">{{ "Con telesupervisión" if activo.telesupervision else "Sin telesupervisión" }}</span>
+    <span class="chip">Acceso: {{ activo.condicion_acceso or "sin datos" }}</span>
+  </div>
+</div>
+
+{% if guardado %}
+<p class="aviso exito" role="status" style="margin:16px 32px 0">Evaluación guardada. Es la nueva criticidad vigente del activo; la anterior quedó en el historial.</p>
+{% endif %}
+{% if error or not configuracion_completa %}
+<p class="aviso error" role="alert" style="margin:16px 32px 0">{{ error or "La configuración de criterios no está completa: hace falta al menos un criterio habilitado de probabilidad y uno de consecuencia." }}</p>
+{% endif %}
+
+<form method="post" action="/activos/{{ activo.id }}/criticidad"
+      hx-post="/activos/{{ activo.id }}/criticidad/vista-previa"
+      hx-trigger="change" hx-sync="this:replace"
+      hx-target="#resultado" hx-swap="outerHTML">
+<div class="cuerpo">
+  <div class="col-izq">
+    <section class="tarjeta">
+      <h2>Factores de evaluación</h2>
+
+      <div class="grupo-titulo">
+        <span class="nombre">Probabilidad</span>
+        <span class="detalle">— posibilidad de que se produzca una falla</span>
+      </div>
+      {% for criterio in criterios_probabilidad %}
+      <label class="factor">
+        <input type="checkbox" name="criterios" value="{{ criterio.id }}" {% if criterio.id in ids_marcados %}checked{% endif %}>
+        <span class="caja"></span>
+        <span class="texto">
+          <span class="principal">{{ criterio.nombre }}</span>
+          {% if criterio.descripcion %}<span class="evidencia">{{ criterio.descripcion }}</span>{% endif %}
+        </span>
+      </label>
+      {% endfor %}
+
+      <div class="grupo-titulo">
+        <span class="nombre">Consecuencia</span>
+        <span class="detalle">— magnitud del impacto si la falla se produce</span>
+      </div>
+      {% for criterio in criterios_consecuencia %}
+      <label class="factor">
+        <input type="checkbox" name="criterios" value="{{ criterio.id }}" {% if criterio.id in ids_marcados %}checked{% endif %}>
+        <span class="caja"></span>
+        <span class="texto">
+          <span class="principal">{{ criterio.nombre }}</span>
+          <span class="evidencia">Nivel: {{ {"personas": "personas", "ambiente": "ambiente", "produccion": "producción"}[criterio.nivel] }}{% if criterio.descripcion %} · {{ criterio.descripcion }}{% endif %}</span>
+        </span>
+      </label>
+      {% endfor %}
+
+      <div class="grupo-titulo">
+        <span class="nombre">Datos operativos</span>
+      </div>
+      <p class="aviso">La telesupervisión y la condición de acceso no intervienen en el cálculo de la criticidad. La telesupervisión se usa como desempate en la propuesta de orden; el acceso se evalúa en las condiciones de salida de la ronda.</p>
+
+      <div class="campo" style="margin-top:18px">
+        <label for="observaciones">Observaciones de la evaluación</label>
+        <textarea id="observaciones" name="observaciones" rows="3" maxlength="500"></textarea>
+      </div>
+    </section>
+
+    <section class="tarjeta">
+      <h2>Historial de evaluaciones</h2>
+      {% if activo.evaluaciones %}
+      <table class="tabla" style="margin-top:12px">
+        <tr><th>Fecha</th><th>Probabilidad</th><th>Consecuencia</th><th>Criticidad</th><th>Evaluada por</th><th>Observaciones</th></tr>
+        {% for evaluacion in activo.evaluaciones %}
+        <tr>
+          <td>{{ evaluacion.fecha_hora_evaluacion | fecha_hora }}</td>
+          <td>{{ evaluacion.probabilidad | titulo }}</td>
+          <td>{{ evaluacion.consecuencia | titulo }}</td>
+          <td><span class="marca {{ evaluacion.categoria }}">{{ evaluacion.categoria | titulo }}</span></td>
+          <td>{{ evaluacion.usuario.nombre }}</td>
+          <td>{{ evaluacion.observaciones or "—" }}</td>
+        </tr>
+        {% endfor %}
+      </table>
+      {% else %}
+      <p class="ayuda" style="margin-top:8px">El activo todavía no tiene evaluaciones.</p>
+      {% endif %}
+    </section>
+  </div>
+
+  <div class="col-der">
+    {% include "_resultado_criticidad.html" %}
+
+    <section class="tarjeta">
+      <h2>Vigencia</h2>
+      <div class="fila-campos" style="margin-top:12px">
+        <div class="campo">
+          <label>Vigente desde</label>
+          <div class="valor">{{ vigente.fecha_hora_evaluacion | fecha_hora if vigente else "Sin evaluar" }}</div>
+        </div>
+        <div class="campo">
+          <label>Evaluada por</label>
+          <div class="valor">{{ vigente.usuario.nombre if vigente else "—" }}</div>
+        </div>
+      </div>
+      <p class="ayuda">La criticidad no se edita a mano: se calcula con los factores marcados. Guardar crea una evaluación nueva y conserva las anteriores.</p>
+    </section>
+
+    <div class="acciones">
+      <a class="boton" href="/activos">Volver</a>
+      <button type="submit" class="boton primario" {% if not configuracion_completa %}disabled{% endif %}>Guardar evaluación</button>
+    </div>
+  </div>
+</div>
+</form>
+{% endblock %}

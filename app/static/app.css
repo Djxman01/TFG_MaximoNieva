@@ -34,3 +34,78 @@ body { padding: 0; background: var(--canvas); }
 }
 
 .lista { margin: 0; padding-left: 20px; font-size: 13.5px; line-height: 1.9; }
+
+/* ---------- Barra con menú ---------- */
+.barra .izquierda { display: flex; align-items: center; gap: var(--e-6); }
+.barra a.marca { color: #FFFFFF; text-decoration: none; }
+.barra .menu { display: flex; gap: var(--e-5); }
+.barra .menu a { color: #D5DEE8; text-decoration: none; font-size: 13.5px; }
+.barra .menu a:hover { color: #FFFFFF; text-decoration: underline; }
+
+a { color: var(--accion); }
+.miga a { color: var(--txt-3); }
+a.boton { text-decoration: none; display: inline-block; }
+.boton:disabled { opacity: .45; cursor: not-allowed; }
+a.tarjeta.acceso { display: block; text-decoration: none; color: inherit; }
+a.tarjeta.acceso:hover { border-color: var(--accion); }
+
+.aviso.exito { background: var(--baja-fondo); border-color: var(--baja); color: #34513A; font-size: 13px; }
+
+.campo > textarea, .campo > select {
+  width: 100%;
+  border: 1px solid var(--borde-fuerte); background: var(--superficie);
+  border-radius: 6px; padding: 10px 12px;
+  font-size: 14px; font-family: var(--tipo); color: var(--txt-1);
+}
+
+/* Factores y opciones: se resaltan cuando están marcados, sin JavaScript. */
+.factor:has(input:checked) { background: var(--accion-suave); border-color: #CBDAE8; }
+.factor:has(input:checked) .caja { background: var(--accion); border-color: var(--accion); }
+.factor:has(input:checked) .caja::after { opacity: 1; }
+.factor:has(input:focus-visible), .opcion:has(input:focus-visible) { outline: 2px solid var(--accion); }
+.opcion:has(input:checked) { background: var(--accion-suave); border-color: var(--accion); }
+.opcion:has(input:checked) .punto { border-color: var(--accion); }
+.opcion:has(input:checked) .punto::after { opacity: 1; }
+
+/* ---------- Matriz de criticidad (pantalla 01) ---------- */
+.matriz { display: grid; grid-template-columns: 54px repeat(3, 1fr); gap: 4px; }
+.matriz .eje {
+  font-size: 10.5px; color: var(--txt-3);
+  display: flex; align-items: center; justify-content: center;
+}
+.matriz .eje.fila {
+  justify-content: flex-end; padding-right: 8px;
+  font-weight: 600; font-size: 11px; color: var(--txt-2);
+}
+.celda {
+  height: 44px; border-radius: 5px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11.5px; font-weight: 600;
+  border: 1.5px solid transparent;
+}
+.celda.c-alta  { background: var(--alta-fondo);  color: var(--alta);  }
+.celda.c-media { background: var(--media-fondo); color: var(--media); }
+.celda.c-baja  { background: var(--baja-fondo);  color: var(--baja);  }
+.celda.activa  { border-color: var(--txt-1); box-shadow: 0 0 0 2px rgba(35,34,31,.10); }
+.ejes-cab { display: flex; justify-content: space-between; margin-bottom: 6px;
+            font-size: 11px; color: var(--txt-3); }
+.resumen { display: flex; gap: var(--e-3); margin: 12px 0 16px; }
+.resumen div { flex: 1; background: var(--superficie-2); border-radius: 6px; padding: 8px 12px; }
+.resumen .rot { font-size: 10.5px; color: var(--txt-3); }
+.resumen .val { font-size: 14px; font-weight: 600; margin-top: 1px; }
+.regla {
+  margin-top: 16px; padding-top: 12px;
+  border-top: 1px solid var(--borde);
+  font-size: 11.5px; color: var(--txt-2); line-height: 1.7;
+}
+.regla .rot {
+  display: block; margin-bottom: 4px;
+  font-size: 10px; font-weight: 700; color: var(--txt-3);
+  text-transform: uppercase; letter-spacing: .07em;
+}
+.regla b { color: var(--txt-1); font-weight: 600; }
+
+/* La aclaración de cada factor va en un renglón propio. */
+.factor .texto .evidencia { display: block; margin: 2px 0 0; }
+.resumen div { padding: 0; background: none; }
+.resumen > div { background: var(--superficie-2); padding: 8px 12px; }

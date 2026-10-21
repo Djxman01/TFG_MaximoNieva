@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block contenido %}
+<div class="encabezado">
+  <h1>Activos</h1>
+  <div class="miga">Criticidad vigente de cada activo{% if usuario.rol == "lider" %}. Para evaluarla, entrar en el activo{% endif %}.</div>
+</div>
+
+<div class="cuerpo">
+  <section class="tarjeta" style="width:100%">
+    <table class="tabla">
+      <tr>
+        <th>Activo</th><th>Tipo</th><th>Estado</th><th>Telesupervisión</th>
+        <th>Acceso</th><th>Criticidad vigente</th><th>Evaluada el</th><th></th>
+      </tr>
+      {% for activo in activos %}
+      {% set vigente = activo.criticidad_vigente() %}
+      <tr>
+        <td><b>{{ activo.codigo }}</b></td>
+        <td>{{ activo.tipo }}</td>
+        <td>{{ activo.estado | titulo }}</td>
+        <td>{{ "Sí" if activo.telesupervision else "No" }}</td>
+        <td>{{ activo.condicion_acceso or "—" }}</td>
+        <td>
+          {% if vigente %}<span class="marca {{ vigente.categoria }}">{{ vigente.categoria | titulo }}</span>
+          {% else %}<span class="marca neutra">Sin evaluar</span>{% endif %}
+        </td>
+        <td>{{ vigente.fecha_hora_evaluacion | fecha if vigente else "—" }}</td>
+        <td>{% if usuario.rol == "lider" %}<a href="/activos/{{ activo.id }}/criticidad">Evaluar</a>{% endif %}</td>
+      </tr>
+      {% endfor %}
+    </table>
+  </section>
+</div>
+{% endblock %}

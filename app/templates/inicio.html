@@ -6,14 +6,37 @@
 </div>
 
 <div class="cuerpo">
-  <section class="tarjeta">
-    <h2>Funciones habilitadas para tu rol</h2>
-    <p class="ayuda">Ingresaste como {{ nombre_rol }}.</p>
-    <ul class="lista">
-      {% for funcion in funciones %}
-      <li>{{ funcion }}</li>
-      {% endfor %}
-    </ul>
-  </section>
+  <div class="col-izq">
+    {% if usuario.rol == "lider" %}
+    <a class="tarjeta acceso" href="/rondas">
+      <h2>Rondas de inspección</h2>
+      <p class="ayuda">Crear una ronda, generar la propuesta de orden, ajustarla y confirmarla. Consultar el avance y la cobertura.</p>
+    </a>
+    <a class="tarjeta acceso" href="/activos">
+      <h2>Activos y criticidad</h2>
+      <p class="ayuda">Consultar los activos y evaluar su criticidad.</p>
+    </a>
+    {% else %}
+    <a class="tarjeta acceso" href="/registro">
+      <h2>Rondas a ejecutar</h2>
+      <p class="ayuda">Registrar las verificaciones de las rondas confirmadas, con su evidencia.</p>
+    </a>
+    <a class="tarjeta acceso" href="/activos">
+      <h2>Activos</h2>
+      <p class="ayuda">Consultar los activos y su criticidad vigente.</p>
+    </a>
+    {% endif %}
+  </div>
+  <div class="col-der">
+    <section class="tarjeta">
+      <h2>Funciones de tu perfil</h2>
+      <p class="ayuda">Ingresaste como {{ NOMBRES_DE_ROL[usuario.rol] }}.</p>
+      <ul class="lista">
+        {% for funcion in funciones %}
+        <li>{{ funcion }}</li>
+        {% endfor %}
+      </ul>
+    </section>
+  </div>
 </div>
 {% endblock %}

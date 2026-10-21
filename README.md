@@ -7,11 +7,12 @@ ficticios.
 
 | Parte | Estado |
 |---|---|
-| Motor de criticidad: probabilidad, consecuencia y matriz (HU-004) | Reglas implementadas y probadas; falta la pantalla y el guardado |
+| Evaluación de criticidad con historial (HU-004) | Implementado y probado |
+| Activos (HU-002) y criterios (HU-003) | Por datos semilla, sin pantallas de alta |
 | Ingreso al sistema y roles (HU-001) | Implementado y probado |
 | Despliegue con Docker Compose | Implementado |
 | Respaldo de la base y de la evidencia | Implementado |
-| Activos, rondas, ordenamiento, registro y cobertura | Pendiente |
+| Rondas, ordenamiento, registro y cobertura | Pendiente |
 
 ## Puesta en marcha
 
@@ -24,15 +25,33 @@ Requiere Docker.
    docker compose up -d --build
    ```
 
-3. Crear los usuarios (la contraseña se pide por teclado):
+3. Cargar los datos de ejemplo (usuarios de prueba, criterios de criticidad y activos):
 
    ```bash
-   docker compose exec app python -m scripts.crear_usuario --nombre "Nombre Apellido" --email correo@ejemplo.com --rol lider
+   docker compose exec app python -m scripts.datos_semilla
    ```
 
-   Los roles posibles son `lider` (Líder de Operaciones) y `operador`.
+   Se puede repetir sin duplicar nada.
 
-4. Abrir <http://localhost:8000>.
+4. Abrir <http://localhost:8000> e ingresar con un usuario de prueba.
+
+### Usuarios de prueba
+
+Solo para la demo. Todos los datos del prototipo son ficticios.
+
+| Perfil | Correo | Contraseña |
+|---|---|---|
+| Líder de Operaciones | `lider@rondas.demo` | `laura planifica las rondas` |
+| Operador | `operador@rondas.demo` | `pablo recorre los pozos` |
+
+### Crear otros usuarios
+
+```bash
+docker compose exec app python -m scripts.crear_usuario --nombre "Nombre Apellido" --email correo@ejemplo.com --rol lider
+```
+
+La contraseña se pide por teclado. Los roles posibles son `lider` (Líder de Operaciones) y
+`operador`.
 
 Para detener los servicios sin perder los datos: `docker compose stop`.
 
