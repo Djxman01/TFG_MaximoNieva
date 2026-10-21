@@ -370,3 +370,297 @@ def generar_propuesta(
     # Los excluidos quedan en la ronda con orden_propuesto = NULL (HU-007 c5).
     db.commit()
     return RedirectResponse(f"/rondas/{ronda.id}", status_code=303)
+
+
+# ---------- HU-008: revisión, ajuste y confirmación del recorrido ----------
+#
+# El orden ajustado viaja en el formulario como una lista de ids (campo "orden").
+# Las flechas ↑ ↓ le piden al servidor, con htmx, la columna reordenada; recién al
+# confirmar se guarda en la base. Así no hace falta JavaScript propio ni guardar
+# borradores intermedios.
+
+
+def exigir_propuesta(ronda: Ronda) -> None:
+    if not tiene_propuesta(ronda):
+        raise HTTPException(
+            status_code=409, detail="Primero hay que generar la propuesta de orden."
+        )
+
+
+def orden_inicial(ronda: Ronda) -> list[int]:
+    """Ids de los activos del recorrido: el planificado si existe, si no el propuesto."""
+    campo = (
+        "orden_planificado"
+        if any(ra.orden_planificado is not None for ra in ronda.activos)
+        else "orden_propuesto"
+    )
+    con_orden = [ra for ra in ronda.activos if getattr(ra, campo) is not None]
+    con_orden.sort(key=lambda ra: getattr(ra, campo))
+    return [ra.id for ra in con_orden]
+
+
+def orden_valido(ronda: Ronda, orden: list[int]) -> bool:
+    """El orden ajustado tiene que contener exactamente los activos propuestos.
+
+    El ajuste cambia la posición de las paradas; no agrega ni quita activos.
+    """
+    propuestos = {ra.id for ra in ronda.activos if ra.orden_propuesto is not None}
+    return len(orden) == len(propuestos) and set(orden) == propuestos
+
+
+def mover(orden: list[int], movimiento: str) -> list[int]:
+    """Aplica un movimiento "arriba:ID" o "abajo:ID" y devuelve el orden nuevo."""
+    direccion, _, texto_id = movimiento.partition(":")
+    if not texto_id.isdigit() or int(texto_id) not in orden:
+        return orden
+    nuevo = list(orden)
+    i = nuevo.index(int(texto_id))
+    j = i - 1 if direccion == "arriba" else i + 1
+    if 0 <= j < len(nuevo):
+        nuevo[i], nuevo[j] = nuevo[j], nuevo[i]
+    return nuevo
+
+
+def contexto_revision(ronda: Ronda, orden: list[int], usuario: Usuario | None = None) -> dict:
+    por_id = {ra.id: ra for ra in ronda.activos}
+    propuesta = datos_propuesta(ronda)
+
+    # Recorrido ajustado con sus tiempos y cuánto subió o bajó cada parada.
+    ajustado = []
+    x, y = float(ronda.origen_x), float(ronda.origen_y)
+    acumulado = 0.0
+    for posicion, ronda_activo_id in enumerate(orden, start=1):
+        ronda_activo = por_id[ronda_activo_id]
+        activo = ronda_activo.activo
+        metros = distancia(x, y, float(activo.coordenada_x), float(activo.coordenada_y))
+        acumulado += minutos_de_tramo(
+            metros, float(ronda.velocidad_media), ronda.duracion_inspeccion
+        )
+        ajustado.append(
+            {
+                "ra": ronda_activo,
+                "orden": posicion,
+                # Positivo = subió (está más adelante que en la propuesta).
+                "desplazamiento": ronda_activo.orden_propuesto - posicion,
+                "minutos_acumulados": acumulado,
+            }
+        )
+        x, y = float(activo.coordenada_x), float(activo.coordenada_y)
+
+    return {
+        "usuario": usuario,
+        "ronda": ronda,
+        "propuesta": propuesta,
+        "orden": orden,
+        "ajustado": ajustado,
+        "total_ajustado": acumulado,
+        "difiere": any(parada["desplazamiento"] != 0 for parada in ajustado),
+        "motivo": "",
+        "error": None,
+    }
+
+
+@router.get("/rondas/{ronda_id}/revision")
+def ver_revision(
+    ronda_id: int,
+    request: Request,
+    usuario: Usuario = Depends(solo_lider),
+    db: Session = Depends(obtener_db),
+):
+    ronda = buscar_ronda(db, ronda_id)
+    exigir_borrador(ronda)
+    exigir_propuesta(ronda)
+    contexto = contexto_revision(ronda, orden_inicial(ronda), usuario)
+    # Si ya se había confirmado un ajuste, se muestra su motivo.
+    motivos = {ra.motivo_ajuste for ra in ronda.activos if ra.motivo_ajuste}
+    contexto["motivo"] = motivos.pop() if motivos else ""
+    return plantillas.TemplateResponse(request, "revision.html", contexto)
+
+
+@router.post("/rondas/{ronda_id}/revision/mover")
+def mover_parada(
+    ronda_id: int,
+    request: Request,
+    orden: list[int] = Form(default=[]),
+    movimiento: str = Form(default=""),
+    usuario: Usuario = Depends(solo_lider),
+    db: Session = Depends(obtener_db),
+):
+    """Devuelve solo la columna "Recorrido ajustado" con una parada movida (htmx)."""
+    ronda = buscar_ronda(db, ronda_id)
+    exigir_borrador(ronda)
+    if not orden_valido(ronda, orden):
+        orden = orden_inicial(ronda)
+    contexto = contexto_revision(ronda, mover(orden, movimiento), usuario)
+    return plantillas.TemplateResponse(request, "_recorrido_ajustado.html", contexto)
+
+
+@router.post("/rondas/{ronda_id}/revision")
+def confirmar_recorrido(
+    ronda_id: int,
+    request: Request,
+    orden: list[int] = Form(default=[]),
+    motivo: str = Form(default=""),
+    usuario: Usuario = Depends(solo_lider),
+    db: Session = Depends(obtener_db),
+):
+    ronda = buscar_ronda(db, ronda_id)
+    exigir_borrador(ronda)
+    exigir_propuesta(ronda)
+    if not orden_valido(ronda, orden):
+        raise HTTPException(status_code=400, detail="El orden enviado no es válido.")
+
+    contexto = contexto_revision(ronda, orden, usuario)
+    motivo = motivo.strip()
+    contexto["motivo"] = motivo
+
+    # HU-008 c5: si el orden ajustado difiere del propuesto, el motivo es obligatorio.
+    if contexto["difiere"] and not motivo:
+        contexto["error"] = (
+            "El recorrido ajustado difiere de la propuesta: indicá el motivo del ajuste."
+        )
+        return plantillas.TemplateResponse(
+            request, "revision.html", contexto, status_code=400
+        )
+
+    # Se guarda la secuencia confirmada junto con la propuesta original (HU-008 c2).
+    for ronda_activo in ronda.activos:
+        ronda_activo.orden_planificado = None
+        ronda_activo.motivo_ajuste = None
+    db.flush()  # se liberan las posiciones antes de asignar las nuevas
+    for parada in contexto["ajustado"]:
+        ronda_activo = parada["ra"]
+        ronda_activo.orden_planificado = parada["orden"]
+        # El motivo queda registrado en las paradas que cambiaron de lugar.
+        if parada["desplazamiento"] != 0:
+            ronda_activo.motivo_ajuste = motivo
+    db.commit()
+    return RedirectResponse(f"/rondas/{ronda.id}/confirmacion", status_code=303)
+
+
+# ---------- HU-014: condiciones de salida y confirmación de la ronda ----------
+
+NOMBRES_DE_CONDICION = {
+    "condicion_clima": "Clima",
+    "condicion_acceso": "Estado de los accesos",
+    "condicion_conectividad": "Conectividad",
+}
+
+
+def recorrido_confirmado(ronda: Ronda) -> bool:
+    return any(ra.orden_planificado is not None for ra in ronda.activos)
+
+
+def contexto_confirmacion(ronda: Ronda, usuario: Usuario, valores: dict | None = None) -> dict:
+    paradas = recorrido(ronda, "orden_planificado")
+    if valores is None:
+        valores = {campo: getattr(ronda, campo) or "" for campo in NOMBRES_DE_CONDICION}
+        valores["restricciones"] = ronda.restricciones
+    return {
+        "usuario": usuario,
+        "ronda": ronda,
+        "paradas": paradas,
+        "excluidos": [ra for ra in ronda.activos if ra.orden_planificado is None],
+        "total": paradas[-1]["minutos_acumulados"] if paradas else 0.0,
+        "ajustado": any(ra.motivo_ajuste for ra in ronda.activos),
+        "condiciones": NOMBRES_DE_CONDICION,
+        "valores": valores,
+        "errores": [],
+    }
+
+
+@router.get("/rondas/{ronda_id}/confirmacion")
+def ver_confirmacion(
+    ronda_id: int,
+    request: Request,
+    usuario: Usuario = Depends(solo_lider),
+    db: Session = Depends(obtener_db),
+):
+    ronda = buscar_ronda(db, ronda_id)
+    exigir_borrador(ronda)
+    if not recorrido_confirmado(ronda):
+        return RedirectResponse(f"/rondas/{ronda.id}/revision", status_code=303)
+    return plantillas.TemplateResponse(
+        request, "confirmacion.html", contexto_confirmacion(ronda, usuario)
+    )
+
+
+@router.post("/rondas/{ronda_id}/confirmacion")
+def programar_ronda(
+    ronda_id: int,
+    request: Request,
+    condicion_clima: str = Form(default=""),
+    condicion_acceso: str = Form(default=""),
+    condicion_conectividad: str = Form(default=""),
+    restricciones: str = Form(default=""),
+    usuario: Usuario = Depends(solo_lider),
+    db: Session = Depends(obtener_db),
+):
+    ronda = buscar_ronda(db, ronda_id)
+    exigir_borrador(ronda)
+    if not recorrido_confirmado(ronda):
+        raise HTTPException(status_code=409, detail="Primero hay que confirmar el recorrido.")
+
+    valores = {
+        "condicion_clima": condicion_clima,
+        "condicion_acceso": condicion_acceso,
+        "condicion_conectividad": condicion_conectividad,
+        "restricciones": restricciones.strip(),
+    }
+    errores = [
+        f"Falta registrar el estado de: {nombre}."
+        for campo, nombre in NOMBRES_DE_CONDICION.items()
+        if valores[campo] not in CONDICIONES
+    ]
+    if errores:
+        contexto = contexto_confirmacion(ronda, usuario, valores)
+        contexto["errores"] = errores
+        return plantillas.TemplateResponse(
+            request, "confirmacion.html", contexto, status_code=400
+        )
+
+    # Las condiciones se registran siempre, aunque impidan confirmar: así queda
+    # constancia de por qué la ronda no salió.
+    for campo, valor in valores.items():
+        setattr(ronda, campo, valor)
+
+    # HU-014 c2: una condición en "No apto" impide confirmar, y se dice cuál.
+    no_aptas = [
+        nombre for campo, nombre in NOMBRES_DE_CONDICION.items() if valores[campo] == "no_apto"
+    ]
+    if no_aptas:
+        db.commit()
+        contexto = contexto_confirmacion(ronda, usuario, valores)
+        contexto["errores"] = [
+            "La ronda no se puede confirmar: "
+            + ", ".join(no_aptas)
+            + (" está" if len(no_aptas) == 1 else " están")
+            + " en No apto. Reprogramá la salida cuando las condiciones lo permitan."
+        ]
+        return plantillas.TemplateResponse(
+            request, "confirmacion.html", contexto, status_code=409
+        )
+
+    ronda.estado = "planificada"
+    db.commit()
+    return RedirectResponse(f"/rondas/{ronda.id}/detalle?programada=1", status_code=303)
+
+
+# ---------- Consulta de una ronda ya programada ----------
+
+
+@router.get("/rondas/{ronda_id}/detalle")
+def ver_detalle(
+    ronda_id: int,
+    request: Request,
+    programada: bool = False,
+    usuario: Usuario = Depends(solo_lider),
+    db: Session = Depends(obtener_db),
+):
+    ronda = buscar_ronda(db, ronda_id)
+    if ronda.estado == "borrador":
+        return RedirectResponse(f"/rondas/{ronda.id}", status_code=303)
+    contexto = contexto_confirmacion(ronda, usuario)
+    contexto["programada"] = programada
+    contexto["propuesta"] = datos_propuesta(ronda)
+    return plantillas.TemplateResponse(request, "detalle_ronda.html", contexto)

@@ -1,0 +1,14 @@
+<section class="tarjeta">
+  <h2>Condiciones de salida</h2>
+  <p class="ayuda">Registradas por el responsable al programar la ronda.</p>
+  {% for campo, nombre in condiciones.items() %}
+  {% set valor = ronda[campo] %}
+  <div class="condicion">
+    <div class="qué"><div class="nom">{{ nombre }}</div>
+      {% if campo == "condicion_conectividad" %}<div class="det">Enlace satelital del vehículo</div>{% endif %}
+    </div>
+    <span class="estado {{ 'condicionado' if valor == 'condicionado' else ('no-apto' if valor == 'no_apto' else '') }}">{{ CONDICIONES[valor] if valor else "Sin registrar" }}</span>
+  </div>
+  {% endfor %}
+  {% if ronda.restricciones %}<p class="aviso" style="margin-top:10px"><b>Restricciones:</b> {{ ronda.restricciones }}</p>{% endif %}
+</section>

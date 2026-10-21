@@ -1,0 +1,21 @@
+<section class="tarjeta">
+  <h2>{{ titulo_recorrido | default("Recorrido confirmado") }}</h2>
+  <p class="ayuda">Orden final de paradas que se ejecutará en la ronda.</p>
+  {% for parada in paradas %}
+  <div class="fila-orden lectura">
+    <span class="num">{{ parada.orden }}</span>
+    <span class="nom">{{ parada.ra.activo.codigo }}{% if parada.ra.motivo_ajuste %} <em>· ajustado (propuesto {{ parada.ra.orden_propuesto }}º)</em>{% endif %}</span>
+    <span class="marca {{ parada.ra.criticidad.categoria }}">{{ parada.ra.criticidad.categoria | titulo }}</span>
+  </div>
+  {% endfor %}
+  {% for ra in excluidos %}
+  <div class="fila-orden excluida">
+    <span class="num">—</span><span class="nom">{{ ra.activo.codigo }} <em>— fuera por tiempo disponible</em></span>
+    <span class="marca {{ ra.criticidad.categoria }}">{{ ra.criticidad.categoria | titulo }}</span>
+  </div>
+  {% endfor %}
+  <div style="margin-top:16px">
+    <div class="total"><span>Tiempo disponible</span><span class="cifra">{{ ronda.tiempo_disponible }} min</span></div>
+    <div class="total destacado"><span>Tiempo estimado del recorrido</span><span class="cifra">{{ total | round | int }} min</span></div>
+  </div>
+</section>

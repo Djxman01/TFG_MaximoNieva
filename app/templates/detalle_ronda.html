@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block titulo %}Ronda {{ ronda.numero }}{% endblock %}
+
+{% block contenido %}
+<div class="encabezado">
+  <div class="miga"><a href="/rondas">Rondas</a><span>›</span>{{ ronda.numero }}</div>
+  <h1>Ronda {{ ronda.numero }}</h1>
+</div>
+
+{% include "_tira_ronda.html" %}
+
+{% if programada %}
+<p class="aviso exito" role="status" style="margin:16px 32px 0">Ronda programada. Ya aparece en las rondas a ejecutar de los operadores.</p>
+{% endif %}
+
+<div class="cuerpo dos">
+  <div class="col">
+    {% include "_recorrido_lectura.html" %}
+  </div>
+  <div class="col">
+    {% include "_condiciones_lectura.html" %}
+  </div>
+</div>
+{% endblock %}

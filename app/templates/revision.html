@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block titulo %}Revisión · Ronda {{ ronda.numero }}{% endblock %}
+
+{% block contenido %}
+<div class="encabezado">
+  <div class="miga"><a href="/rondas">Rondas</a><span>›</span><a href="/rondas/{{ ronda.id }}">{{ ronda.numero }}</a><span>›</span>Revisión</div>
+  <h1>Revisión y ajuste del recorrido</h1>
+</div>
+
+{% include "_tira_ronda.html" %}
+
+{% if error %}<p class="aviso error" role="alert" style="margin:16px 32px 0">{{ error }}</p>{% endif %}
+
+<form method="post" action="/rondas/{{ ronda.id }}/revision">
+<div class="cuerpo dos">
+  <div class="col">
+    <section class="tarjeta">
+      <h2>Propuesta del sistema</h2>
+      <p class="ayuda">Generada por la regla de ordenamiento. No editable.</p>
+      {% for parada in propuesta.paradas %}
+      <div class="fila-orden lectura">
+        <span class="num">{{ parada.orden }}</span><span class="nom">{{ parada.ra.activo.codigo }}</span>
+        <span class="marca {{ parada.ra.criticidad.categoria }}">{{ parada.ra.criticidad.categoria | titulo }}</span>
+      </div>
+      {% endfor %}
+      {% for ra in propuesta.excluidos %}
+      <div class="fila-orden excluida">
+        <span class="num">—</span><span class="nom">{{ ra.activo.codigo }} <em>— fuera por tiempo disponible</em></span>
+        <span class="marca {{ ra.criticidad.categoria }}">{{ ra.criticidad.categoria | titulo }}</span>
+      </div>
+      {% endfor %}
+      <div style="margin-top:16px">
+        <div class="total"><span>Tiempo estimado</span><span class="cifra">{{ propuesta.total | round | int }} min</span></div>
+      </div>
+    </section>
+  </div>
+  <div class="col">
+    {% include "_recorrido_ajustado.html" %}
+  </div>
+</div>
+
+<div class="cuerpo" style="padding-top:0; flex-direction:column">
+  <section class="tarjeta" style="width:100%">
+    <h2>Motivo del ajuste <span class="obligatorio">*</span></h2>
+    <p class="ayuda">Obligatorio cuando el orden ajustado difiere del propuesto. Queda registrado al confirmar el recorrido.</p>
+    <div class="campo">
+      <textarea name="motivo" rows="3" maxlength="1000" aria-label="Motivo del ajuste">{{ motivo }}</textarea>
+    </div>
+    <div class="acciones" style="margin-top:16px; justify-content:flex-end">
+      <a class="boton" style="flex:none; width:180px" href="/rondas/{{ ronda.id }}/revision">Descartar cambios</a>
+      <button type="submit" class="boton primario" style="flex:none; width:220px">Confirmar recorrido</button>
+    </div>
+  </section>
+</div>
+</form>
+{% endblock %}

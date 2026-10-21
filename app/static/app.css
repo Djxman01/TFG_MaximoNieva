@@ -109,3 +109,19 @@ a.tarjeta.acceso:hover { border-color: var(--accion); }
 .factor .texto .evidencia { display: block; margin: 2px 0 0; }
 .resumen div { padding: 0; background: none; }
 .resumen > div { background: var(--superficie-2); padding: 8px 12px; }
+
+/* Flechas para reordenar (pantalla 03) */
+.flechas { display: flex; flex-direction: column; gap: 2px; flex: none; }
+.flecha {
+  width: 24px; height: 18px; padding: 0; line-height: 1;
+  border: 1px solid var(--borde); border-radius: 4px;
+  background: var(--superficie); color: var(--txt-2); cursor: pointer; font-size: 11px;
+}
+.flecha:hover:not(:disabled) { border-color: var(--accion); color: var(--accion); }
+.flecha:disabled { opacity: .3; cursor: default; }
+
+.selector-condicion {
+  flex: none; width: 150px;
+  border: 1px solid var(--borde-fuerte); border-radius: 6px; padding: 7px 10px;
+  font-family: var(--tipo); font-size: 13px; background: var(--superficie);
+}

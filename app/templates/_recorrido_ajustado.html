@@ -1,0 +1,39 @@
+{# Columna reordenable. Las flechas mandan el orden actual y el movimiento al
+   servidor (htmx), que devuelve esta misma columna con la parada movida. #}
+<section class="tarjeta" id="ajustado">
+  <h2>Recorrido ajustado</h2>
+  <p class="ayuda">Usá las flechas para modificar el orden según condiciones operativas conocidas.</p>
+  {% for parada in ajustado %}
+  <input type="hidden" name="orden" value="{{ parada.ra.id }}">
+  <div class="fila-orden {% if parada.desplazamiento != 0 %}movida{% endif %}">
+    <span class="flechas">
+      <button type="button" class="flecha" title="Subir" aria-label="Subir {{ parada.ra.activo.codigo }}"
+              {% if loop.first %}disabled{% endif %}
+              hx-post="/rondas/{{ ronda.id }}/revision/mover" hx-include="#ajustado"
+              hx-vals='{"movimiento": "arriba:{{ parada.ra.id }}"}'
+              hx-target="#ajustado" hx-swap="outerHTML">↑</button>
+      <button type="button" class="flecha" title="Bajar" aria-label="Bajar {{ parada.ra.activo.codigo }}"
+              {% if loop.last %}disabled{% endif %}
+              hx-post="/rondas/{{ ronda.id }}/revision/mover" hx-include="#ajustado"
+              hx-vals='{"movimiento": "abajo:{{ parada.ra.id }}"}'
+              hx-target="#ajustado" hx-swap="outerHTML">↓</button>
+    </span>
+    <span class="num">{{ parada.orden }}</span>
+    <span class="nom">{{ parada.ra.activo.codigo }}</span>
+    {% if parada.desplazamiento > 0 %}<span class="mov">↑ subió {{ parada.desplazamiento }}</span>
+    {% elif parada.desplazamiento < 0 %}<span class="mov">↓ bajó {{ -parada.desplazamiento }}</span>{% endif %}
+    <span class="marca {{ parada.ra.criticidad.categoria }}">{{ parada.ra.criticidad.categoria | titulo }}</span>
+  </div>
+  {% endfor %}
+  <div style="margin-top:16px">
+    <div class="total"><span>Tiempo estimado</span><span class="cifra">{{ total_ajustado | round | int }} min</span></div>
+    <div class="total">
+      <span>Diferencia respecto de la propuesta</span>
+      {% set diferencia = (total_ajustado | round | int) - (propuesta.total | round | int) %}
+      <span class="cifra">{{ "+" if diferencia > 0 else "" }}{{ diferencia }} min</span>
+    </div>
+    {% if total_ajustado > ronda.tiempo_disponible %}
+    <p class="aviso atencion" style="margin-top:10px">El recorrido ajustado supera el tiempo disponible ({{ ronda.tiempo_disponible }} min).</p>
+    {% endif %}
+  </div>
+</section>

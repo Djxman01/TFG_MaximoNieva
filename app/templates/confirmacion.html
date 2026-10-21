@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+
+{% block titulo %}Confirmación · Ronda {{ ronda.numero }}{% endblock %}
+
+{% block contenido %}
+<div class="encabezado">
+  <div class="miga"><a href="/rondas">Rondas</a><span>›</span><a href="/rondas/{{ ronda.id }}">{{ ronda.numero }}</a><span>›</span><a href="/rondas/{{ ronda.id }}/revision">Revisión</a><span>›</span>Confirmación</div>
+  <h1>Confirmación de la ronda</h1>
+</div>
+
+{% include "_tira_ronda.html" %}
+
+{% if errores %}
+<div class="aviso error" role="alert" style="margin:16px 32px 0">
+  {% for error in errores %}<div>{{ error }}</div>{% endfor %}
+</div>
+{% endif %}
+
+<form method="post" action="/rondas/{{ ronda.id }}/confirmacion">
+<div class="cuerpo dos">
+  <div class="col">
+    {% include "_recorrido_lectura.html" %}
+  </div>
+  <div class="col">
+    <section class="tarjeta">
+      <h2>Condiciones de salida</h2>
+      <p class="ayuda">Verificadas por el responsable antes de programar la ronda.</p>
+      {% for campo, nombre in condiciones.items() %}
+      <div class="condicion">
+        <div class="qué">
+          <div class="nom"><label for="{{ campo }}">{{ nombre }}</label></div>
+          {% if campo == "condicion_conectividad" %}<div class="det">Enlace satelital del vehículo asignado</div>{% endif %}
+        </div>
+        <select id="{{ campo }}" name="{{ campo }}" class="selector-condicion">
+          <option value="">Elegir…</option>
+          {% for clave, texto in CONDICIONES.items() %}
+          <option value="{{ clave }}" {% if valores[campo] == clave %}selected{% endif %}>{{ texto }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      {% endfor %}
+      <div class="campo" style="margin-top:12px">
+        <label for="restricciones">Detalle de las condiciones y restricciones</label>
+        <textarea id="restricciones" name="restricciones" rows="3" maxlength="1000" placeholder="Por ejemplo: lluvias previstas para la mañana; caminos transitables con precaución.">{{ valores.restricciones }}</textarea>
+      </div>
+      <div class="aviso atencion" style="margin-top:14px">
+        Si alguna condición de salida se encuentra en estado <b>No apto</b>, la ronda no
+        puede confirmarse. Las condiciones no modifican el orden del recorrido.
+      </div>
+    </section>
+  </div>
+</div>
+<div class="cuerpo" style="padding-top:0; flex-direction:column">
+  <div class="acciones" style="width:100%; justify-content:flex-end">
+    <a class="boton" style="flex:none; width:160px" href="/rondas/{{ ronda.id }}/revision">Volver</a>
+    <button type="submit" class="boton primario" style="flex:none; width:300px">Confirmar y programar ronda {{ ronda.numero }}</button>
+  </div>
+</div>
+</form>
+{% endblock %}
