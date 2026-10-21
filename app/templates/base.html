@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block titulo %}Sistema de Rondas de Inspección{% endblock %}</title>
+<link rel="stylesheet" href="/static/base.css">
+<link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+
+<div class="pantalla">
+
+  <header class="barra">
+    <div class="marca">Sistema de Rondas de Inspección</div>
+    {% if usuario %}
+    <form class="sesion" method="post" action="/logout">
+      <span>{{ usuario.nombre }} · {{ nombre_rol }}</span>
+      <button type="submit" class="enlace">Salir</button>
+    </form>
+    {% endif %}
+  </header>
+
+  {% block contenido %}{% endblock %}
+
+</div>
+
+</body>
+</html>

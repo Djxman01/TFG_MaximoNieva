@@ -1,0 +1,445 @@
+/* ------------------------------------------------------------------
+   Prototipos de interfaz — Sistema de priorización y trazabilidad
+   de rondas de inspección.
+   Hoja de estilos compartida por las cinco pantallas.
+   ------------------------------------------------------------------ */
+
+:root {
+  color-scheme: light;
+
+  /* Neutros */
+  --canvas:        #F5F5F4;
+  --superficie:    #FFFFFF;
+  --superficie-2:  #FAFAF9;
+  --borde:         #DCDBD6;
+  --borde-fuerte:  #B9B8B2;
+
+  /* Texto */
+  --txt-1: #23221F;
+  --txt-2: #5C5B56;
+  --txt-3: #8A8984;
+
+  /* Acción */
+  --accion:        #2F4E6F;
+  --accion-oscuro: #24405D;
+  --accion-suave:  #E8EEF4;
+
+  /* Criticidad — el color se reserva para esto y nada más */
+  --alta:        #C0442E;  --alta-fondo:  #FBE9E5;
+  --media:       #C8890E;  --media-fondo: #FBF2DE;
+  --baja:        #5A7D5A;  --baja-fondo:  #EAF0E9;
+
+  /* Espaciado */
+  --e-1: 4px;  --e-2: 8px;  --e-3: 12px;
+  --e-4: 16px; --e-5: 24px; --e-6: 32px;
+
+  --r-sm: 4px; --r-md: 8px; --r-pill: 999px;
+
+  --tipo: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          "Helvetica Neue", Arial, sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: #E9E9E7;
+  font-family: var(--tipo);
+  color: var(--txt-1);
+  -webkit-font-smoothing: antialiased;
+  display: flex;
+  justify-content: center;
+  padding: 24px;
+}
+
+/* El marco que se captura. Ancho fijo para que la exportación
+   tenga siempre las mismas dimensiones. */
+.pantalla {
+  width: 1440px;
+  background: var(--canvas);
+  border: 1px solid var(--borde);
+}
+
+/* ---------- Barra superior ---------- */
+.barra {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px var(--e-6);
+  background: var(--accion);
+  color: #FFFFFF;
+}
+.barra .marca { font-size: 15px; font-weight: 600; letter-spacing: .01em; }
+.barra .sesion { font-size: 13px; color: #D5DEE8; }
+
+/* ---------- Encabezado de pantalla ---------- */
+.encabezado { padding: 20px var(--e-6) 0; }
+.encabezado .rotulo {
+  font-size: 12px; color: var(--txt-3);
+  text-transform: none; letter-spacing: .02em;
+}
+.encabezado h1 {
+  margin: 6px 0 4px;
+  font-size: 26px; font-weight: 600; letter-spacing: -.01em;
+}
+.miga { font-size: 13px; color: var(--txt-3); }
+.miga span { margin: 0 6px; color: var(--borde-fuerte); }
+
+/* ---------- Estructura ---------- */
+.cuerpo {
+  display: flex;
+  gap: var(--e-5);
+  padding: var(--e-5) var(--e-6) var(--e-6);
+  align-items: flex-start;
+}
+.col-izq { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: var(--e-4); }
+.col-der { width: 420px; flex: none; display: flex; flex-direction: column; gap: var(--e-4); }
+
+/* Dos columnas de igual ancho, para comparaciones lado a lado */
+.cuerpo.dos > .col { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: var(--e-4); }
+
+/* Campo de texto largo */
+.campo > .texto-largo {
+  border: 1px solid var(--borde);
+  background: var(--superficie-2);
+  border-radius: 6px;
+  padding: 11px 13px;
+  font-size: 13.5px; line-height: 1.55;
+  min-height: 62px;
+}
+.obligatorio { color: var(--alta); }
+
+/* ---------- Tarjeta ---------- */
+.tarjeta {
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+  border-radius: var(--r-md);
+  padding: 18px 20px;
+}
+.tarjeta > h2 {
+  margin: 0 0 4px;
+  font-size: 15px; font-weight: 600;
+}
+/* Sin párrafo de ayuda intermedio el título queda pegado al primer
+   rótulo de grupo: hace falta más aire. */
+.tarjeta > h2 + .grupo-titulo { margin-top: 18px; }
+.tarjeta > .ayuda {
+  margin: 0 0 14px;
+  font-size: 12.5px; color: var(--txt-2); line-height: 1.5;
+}
+.tarjeta > h2:last-child, .tarjeta > .ayuda:last-child { margin-bottom: 0; }
+
+/* Franja de identificación del registro que se está editando.
+   Reemplaza a una tarjeta de campos: son datos de contexto, no
+   valores que el usuario cargue acá. */
+.tira {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: var(--e-5);
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+  border-radius: var(--r-md);
+  padding: 15px 20px;
+  margin: 18px var(--e-6) 0;
+}
+.tira .nombre { font-size: 19px; font-weight: 600; letter-spacing: -.01em; }
+.tira .meta { font-size: 12.5px; color: var(--txt-2); margin-top: 3px; }
+
+.chips { display: flex; gap: var(--e-2); flex: none; }
+.chip {
+  font-size: 11.5px; padding: 5px 11px; border-radius: var(--r-pill);
+  background: var(--superficie-2); border: 1px solid var(--borde);
+  color: var(--txt-2); white-space: nowrap;
+}
+.chip b { color: var(--txt-1); font-weight: 600; }
+
+/* ---------- Campos ---------- */
+.fila-campos { display: flex; gap: var(--e-4); margin-bottom: var(--e-3); }
+.fila-campos:last-child { margin-bottom: 0; }
+
+.campo { flex: 1; min-width: 0; }
+.campo > label {
+  display: block;
+  font-size: 12px; font-weight: 500; color: var(--txt-2);
+  margin-bottom: 5px;
+}
+.campo > .valor {
+  border: 1px solid var(--borde);
+  background: var(--superficie-2);
+  border-radius: 6px;
+  padding: 9px 12px;
+  font-size: 13.5px;
+  color: var(--txt-1);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+/* Valor que puede ocupar más de un renglón: sin truncado. */
+.campo > .valor.multilinea { white-space: normal; overflow: visible; }
+
+.campo > .valor.derivado {
+  background: var(--canvas);
+  border-style: dashed;
+  color: var(--txt-2);
+}
+.campo .nota {
+  margin-top: 5px;
+  font-size: 11px; color: var(--txt-3); line-height: 1.45;
+}
+
+/* ---------- Grupos de factores ---------- */
+/* Encabezado de grupo: deliberadamente SIN relleno de color.
+   El relleno azul está reservado para los factores marcados; si el
+   encabezado también lo usara, no se distinguiría de una selección. */
+.grupo-titulo {
+  display: flex; align-items: baseline; gap: var(--e-2);
+  margin: 26px 0 10px;
+  padding-bottom: 7px;
+  border-bottom: 1px solid var(--borde);
+}
+/* Un escalón por debajo del h2 de la tarjeta: si compartieran color y
+   peso, los dos rótulos apilados se leerían como un solo título partido. */
+.grupo-titulo .nombre {
+  font-size: 11px; font-weight: 700; color: var(--txt-2);
+  text-transform: uppercase; letter-spacing: .07em;
+}
+.grupo-titulo .detalle { font-size: 11.5px; color: var(--txt-3); }
+
+.factor {
+  display: flex; align-items: flex-start; gap: var(--e-3);
+  padding: 9px 12px;
+  border-radius: 6px;
+  background: var(--superficie-2);
+  margin-bottom: 6px;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+.factor:last-child { margin-bottom: 0; }
+.factor.activo { background: var(--accion-suave); border-color: #CBDAE8; }
+
+.factor input { position: absolute; opacity: 0; pointer-events: none; }
+.factor .caja {
+  width: 17px; height: 17px; flex: none; margin-top: 1px;
+  border: 1.5px solid var(--borde-fuerte);
+  border-radius: var(--r-sm);
+  background: var(--superficie);
+  display: flex; align-items: center; justify-content: center;
+}
+.factor.activo .caja { background: var(--accion); border-color: var(--accion); }
+.factor .caja::after {
+  content: ""; width: 9px; height: 5px;
+  border-left: 2px solid #FFF; border-bottom: 2px solid #FFF;
+  transform: rotate(-45deg) translate(1px, -1px);
+  opacity: 0;
+}
+.factor.activo .caja::after { opacity: 1; }
+
+.factor .texto .principal { font-size: 13px; font-weight: 500; line-height: 1.4; }
+.factor .texto .evidencia {
+  font-size: 11px; color: var(--txt-3); line-height: 1.4;
+  margin-left: 9px;
+}
+
+/* ---------- Distintivos de criticidad ---------- */
+.marca { display: inline-block; padding: 3px 10px; border-radius: var(--r-pill);
+         font-size: 11.5px; font-weight: 600; }
+.marca.alta  { background: var(--alta-fondo);  color: var(--alta);  }
+.marca.media { background: var(--media-fondo); color: var(--media); }
+.marca.baja  { background: var(--baja-fondo);  color: var(--baja);  }
+.marca.neutra{ background: var(--canvas); color: var(--txt-2); border: 1px solid var(--borde); }
+
+.distintivo-grande {
+  display: inline-flex; align-items: center; gap: var(--e-2);
+  padding: 8px 20px; border-radius: var(--r-pill);
+  font-size: 17px; font-weight: 700; letter-spacing: .04em;
+  border: 1.5px solid;
+}
+.distintivo-grande.alta  { background: var(--alta-fondo);  color: var(--alta);  border-color: var(--alta);  }
+.distintivo-grande.media { background: var(--media-fondo); color: var(--media); border-color: var(--media); }
+.distintivo-grande.baja  { background: var(--baja-fondo);  color: var(--baja);  border-color: var(--baja);  }
+
+/* ---------- Botones ---------- */
+.acciones { display: flex; gap: var(--e-3); }
+.boton {
+  flex: 1; text-align: center;
+  padding: 11px 18px; border-radius: 6px;
+  font-size: 13.5px; font-weight: 500; font-family: var(--tipo);
+  border: 1px solid var(--borde-fuerte);
+  background: var(--superficie); color: var(--txt-1);
+  cursor: pointer;
+}
+.boton.primario {
+  background: var(--accion); border-color: var(--accion); color: #FFFFFF;
+}
+
+/* ---------- Aviso / anotación ---------- */
+/* Bloque de texto corrido: NO usar flex, o cada <b> se vuelve un ítem
+   del layout y el párrafo se parte en columnas. */
+.aviso {
+  display: block;
+  background: var(--superficie-2);
+  border: 1px solid var(--borde);
+  border-radius: 6px;
+  padding: 10px 12px;
+  font-size: 11.5px; color: var(--txt-2); line-height: 1.5;
+}
+.aviso.atencion { background: var(--media-fondo); border-color: #EBD9AE; color: #7A5406; }
+
+/* ---------- Lista ordenada de paradas ---------- */
+.fila-orden {
+  display: flex; align-items: center; gap: var(--e-3);
+  padding: 11px 14px;
+  border: 1px solid var(--borde);
+  border-radius: 6px;
+  margin-bottom: 7px;
+  background: var(--superficie);
+}
+.fila-orden:last-child { margin-bottom: 0; }
+.fila-orden .num {
+  width: 24px; height: 24px; flex: none;
+  border-radius: var(--r-pill);
+  background: var(--accion-suave); color: var(--accion);
+  font-size: 12px; font-weight: 600;
+  display: flex; align-items: center; justify-content: center;
+}
+.fila-orden .nom { flex: 1; font-size: 13.5px; font-weight: 500; }
+.fila-orden .nom em { font-style: normal; font-weight: 400; color: var(--txt-3); }
+
+/* Asa de arrastre y marca de desplazamiento */
+.fila-orden .asa { flex: none; color: var(--borde-fuerte); font-size: 15px; line-height: 1; }
+.fila-orden .mov { font-size: 11.5px; color: var(--txt-2); white-space: nowrap; }
+.fila-orden.movida { border-color: var(--accion); background: var(--accion-suave); }
+.fila-orden.movida .num { background: var(--superficie); }
+
+/* Columna de solo lectura */
+.fila-orden.lectura { background: var(--superficie-2); border-color: var(--borde); }
+.fila-orden.lectura .num { background: var(--canvas); color: var(--txt-2); }
+.fila-orden.lectura .nom { color: var(--txt-2); font-weight: 400; }
+
+.fila-orden.excluida {
+  border-style: dashed;
+  background: var(--superficie-2);
+}
+.fila-orden.excluida .num { background: var(--canvas); color: var(--txt-3); }
+.fila-orden.excluida .nom { color: var(--txt-3); font-weight: 400; }
+
+/* ---------- Totales ---------- */
+.total {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 9px 0;
+  font-size: 13px; color: var(--txt-2);
+  border-top: 1px solid var(--borde);
+}
+.total .cifra { font-size: 14px; font-weight: 600; color: var(--txt-1); }
+.total.destacado .cifra { font-size: 15px; }
+
+/* ---------- Regla declarada ---------- */
+.regla-linea {
+  font-size: 11.5px; color: var(--txt-2); line-height: 1.5;
+  background: var(--superficie-2);
+  border-radius: 6px; padding: 9px 12px;
+  margin-bottom: var(--e-3);
+}
+
+/* ---------- Condiciones de salida ----------
+   Escala expresada por peso, no por color: el color está reservado a la
+   criticidad y en esta pantalla conviven ambas cosas. */
+.condicion {
+  display: flex; align-items: center; gap: var(--e-3);
+  padding: 12px 14px;
+  border: 1px solid var(--borde);
+  border-radius: 6px;
+  margin-bottom: 7px;
+}
+.condicion .qué { flex: 1; }
+.condicion .qué .nom { font-size: 13.5px; font-weight: 500; }
+.condicion .qué .det { font-size: 11.5px; color: var(--txt-3); margin-top: 2px; }
+
+.estado {
+  flex: none;
+  font-size: 11.5px; font-weight: 600;
+  padding: 5px 13px; border-radius: var(--r-pill);
+  background: var(--superficie-2);
+  border: 1px solid var(--borde);
+  color: var(--txt-2);
+}
+.estado.condicionado { border-color: var(--txt-2); color: var(--txt-1); }
+.estado.no-apto { background: var(--txt-1); border-color: var(--txt-1); color: #FFFFFF; }
+
+/* ---------- Mapa esquemático ---------- */
+.mapa { width: 100%; display: block; border-radius: 6px; border: 1px solid var(--borde); }
+
+/* ---------- Formato tableta ---------- */
+.pantalla.tableta { width: 820px; }
+/* En columna hay que estirar: con flex-start cada tarjeta se encoge
+   al ancho de su propio contenido y quedan de anchos distintos. */
+.pantalla.tableta .cuerpo {
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--e-4);
+  padding: var(--e-4) 20px var(--e-5);
+}
+.pantalla.tableta .encabezado { padding: 16px 20px 0; }
+.pantalla.tableta .tira { margin: 14px 20px 0; }
+.pantalla.tableta .barra { padding: 14px 20px; }
+
+/* Opción seleccionable de tamaño táctil */
+.opciones { display: flex; gap: var(--e-3); }
+.opcion {
+  flex: 1;
+  display: flex; align-items: flex-start; gap: var(--e-3);
+  padding: 13px 15px;
+  border: 1px solid var(--borde);
+  border-radius: 6px;
+  background: var(--superficie-2);
+  cursor: pointer;
+}
+.opcion.activa { background: var(--accion-suave); border-color: var(--accion); }
+.opcion input { position: absolute; opacity: 0; pointer-events: none; }
+.opcion .punto {
+  width: 18px; height: 18px; flex: none; margin-top: 1px;
+  border: 1.5px solid var(--borde-fuerte); border-radius: var(--r-pill);
+  background: var(--superficie);
+  display: flex; align-items: center; justify-content: center;
+}
+.opcion.activa .punto { border-color: var(--accion); }
+.opcion .punto::after {
+  content: ""; width: 9px; height: 9px; border-radius: var(--r-pill);
+  background: var(--accion); opacity: 0;
+}
+.opcion.activa .punto::after { opacity: 1; }
+.opcion .rot { font-size: 14px; font-weight: 500; }
+.opcion .det { font-size: 11.5px; color: var(--txt-3); margin-top: 2px; line-height: 1.4; }
+
+/* Bloque que queda fuera de juego por una selección anterior */
+.inerte { opacity: .38; pointer-events: none; }
+
+/* Barra de avance */
+.avance { height: 6px; border-radius: var(--r-pill); background: var(--canvas); overflow: hidden; }
+.avance > span { display: block; height: 100%; background: var(--accion); }
+
+/* Evidencia adjunta */
+.adjuntos { display: flex; gap: var(--e-3); margin-top: var(--e-3); }
+.adjunto {
+  flex: 1; display: flex; align-items: center; gap: var(--e-3);
+  border: 1px solid var(--borde); border-radius: 6px; padding: 10px;
+}
+.adjunto .lam {
+  width: 54px; height: 44px; flex: none; border-radius: 4px;
+  background: var(--canvas); border: 1px solid var(--borde);
+}
+.adjunto .nom { font-size: 12.5px; font-weight: 500; }
+.adjunto .det { font-size: 11px; color: var(--txt-3); margin-top: 2px; }
+
+.zona-carga {
+  border: 1.5px dashed var(--borde-fuerte); border-radius: 6px;
+  padding: 16px; text-align: center;
+  font-size: 13px; color: var(--accion); font-weight: 500;
+  background: var(--superficie-2);
+}
+
+/* ---------- Tabla simple ---------- */
+.tabla { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.tabla th {
+  text-align: left; font-weight: 500; color: var(--txt-3);
+  font-size: 11.5px; padding: 0 0 7px; border-bottom: 1px solid var(--borde);
+}
+.tabla td { padding: 9px 0; border-bottom: 1px solid var(--superficie-2); color: var(--txt-2); }
+.tabla tr:last-child td { border-bottom: 0; }

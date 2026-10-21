@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block titulo %}Ingreso · Sistema de Rondas de Inspección{% endblock %}
+
+{% block contenido %}
+<div class="cuerpo centrado">
+  <section class="tarjeta angosta">
+    <h2>Ingreso al sistema</h2>
+    <p class="ayuda">Ingresá con tu correo y tu contraseña.</p>
+
+    {% if error %}
+    <p class="aviso error" role="alert">{{ error }}</p>
+    {% endif %}
+
+    <form method="post" action="/login">
+      <div class="campo">
+        <label for="email">Correo electrónico</label>
+        <input type="email" id="email" name="email" required autofocus autocomplete="username">
+      </div>
+      <div class="campo">
+        <label for="clave">Contraseña</label>
+        <input type="password" id="clave" name="clave" required autocomplete="current-password">
+      </div>
+      <div class="acciones">
+        <button type="submit" class="boton primario">Ingresar</button>
+      </div>
+    </form>
+  </section>
+</div>
+{% endblock %}

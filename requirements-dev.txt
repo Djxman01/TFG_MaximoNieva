@@ -1,0 +1,4 @@
+# Dependencias para desarrollar y correr las pruebas.
+-r requirements.txt
+pytest==9.1.1
+httpx2==2.13.1
