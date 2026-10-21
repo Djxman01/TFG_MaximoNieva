@@ -20,6 +20,7 @@ from app.catalogos import (
 )
 from app.database import obtener_db
 from app.models import CONDICIONES, ESTADOS_RONDA, Activo, Ronda, RondaActivo, Usuario
+from app.cobertura import ActivoParaCobertura, calcular_cobertura
 from app.ordenamiento import Candidato, minutos_de_tramo, distancia, proponer_orden
 from app.plantillas import plantillas
 from app.seguridad import ROL_LIDER, requiere_rol
@@ -646,7 +647,19 @@ def programar_ronda(
     return RedirectResponse(f"/rondas/{ronda.id}/detalle?programada=1", status_code=303)
 
 
-# ---------- Consulta de una ronda ya programada ----------
+# ---------- Consulta de la ronda: estado de atención, cobertura y trazabilidad ----------
+# HU-011 estado de atención · HU-012 cobertura · HU-013 trazabilidad.
+
+
+def cobertura_de(ronda: Ronda):
+    """Cobertura con la criticidad congelada al planificar (no la actual del activo)."""
+    return calcular_cobertura(
+        [
+            ActivoParaCobertura(ra.criticidad.categoria, ra.estado_atencion)
+            for ra in ronda.activos
+            if ra.criticidad is not None
+        ]
+    )
 
 
 @router.get("/rondas/{ronda_id}/detalle")
@@ -661,6 +674,32 @@ def ver_detalle(
     if ronda.estado == "borrador":
         return RedirectResponse(f"/rondas/{ronda.id}", status_code=303)
     contexto = contexto_confirmacion(ronda, usuario)
-    contexto["programada"] = programada
-    contexto["propuesta"] = datos_propuesta(ronda)
+    atendidas = [ra for ra in ronda.activos if ra.fecha_hora_atencion is not None]
+    contexto.update(
+        {
+            "programada": programada,
+            "propuesta": datos_propuesta(ronda),
+            "cobertura": cobertura_de(ronda),
+            # Orden en que la ronda se ejecutó realmente (HU-011, sección 4.5).
+            "ejecucion": sorted(atendidas, key=lambda ra: ra.fecha_hora_atencion),
+            "verificaciones": [ra.verificacion for ra in ronda.activos if ra.verificacion],
+        }
+    )
     return plantillas.TemplateResponse(request, "detalle_ronda.html", contexto)
+
+
+@router.post("/rondas/{ronda_id}/cerrar")
+def cerrar_ronda(
+    ronda_id: int,
+    usuario: Usuario = Depends(solo_lider),
+    db: Session = Depends(obtener_db),
+):
+    """Da por terminada la ronda. Los activos sin registro quedan como pendientes."""
+    ronda = buscar_ronda(db, ronda_id)
+    if ronda.estado != "en_ejecucion":
+        raise HTTPException(
+            status_code=409, detail="Solo se puede cerrar una ronda en ejecución."
+        )
+    ronda.estado = "cerrada"
+    db.commit()
+    return RedirectResponse(f"/rondas/{ronda.id}/detalle", status_code=303)

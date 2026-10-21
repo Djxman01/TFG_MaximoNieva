@@ -2,6 +2,8 @@
 
 {% block titulo %}Ronda {{ ronda.numero }}{% endblock %}
 
+{% macro porcentaje(valor) %}{{ (valor * 100) | round | int }} %{% endmacro %}
+
 {% block contenido %}
 <div class="encabezado">
   <div class="miga"><a href="/rondas">Rondas</a><span>›</span>{{ ronda.numero }}</div>
@@ -14,12 +16,119 @@
 <p class="aviso exito" role="status" style="margin:16px 32px 0">Ronda programada. Ya aparece en las rondas a ejecutar de los operadores.</p>
 {% endif %}
 
-<div class="cuerpo dos">
-  <div class="col">
-    {% include "_recorrido_lectura.html" %}
+<div class="cuerpo">
+  <div class="col-izq">
+    <section class="tarjeta">
+      <h2>Recorrido y estado de atención</h2>
+      <p class="ayuda">Orden confirmado. El estado se actualiza a medida que el operador registra cada activo.</p>
+      {% for parada in paradas %}
+      {% set ra = parada.ra %}
+      <div class="fila-orden lectura">
+        <span class="num">{{ parada.orden }}</span>
+        <span class="nom">{{ ra.activo.codigo }}
+          {% if ra.fecha_hora_atencion %}<em>· {{ ra.fecha_hora_atencion | fecha_hora }}</em>{% endif %}
+          {% if ra.observacion_atencion %}<em>· {{ ra.observacion_atencion }}</em>{% endif %}
+        </span>
+        <span class="estado atencion-{{ ra.estado_atencion }}">{{ ESTADOS_ATENCION[ra.estado_atencion] }}</span>
+        <span class="marca {{ ra.criticidad.categoria }}">{{ ra.criticidad.categoria | titulo }}</span>
+      </div>
+      {% endfor %}
+      {% for ra in excluidos %}
+      <div class="fila-orden excluida">
+        <span class="num">—</span><span class="nom">{{ ra.activo.codigo }} <em>— fuera del recorrido por tiempo disponible</em></span>
+        <span class="estado">{{ ESTADOS_ATENCION[ra.estado_atencion] }}</span>
+        <span class="marca {{ ra.criticidad.categoria }}">{{ ra.criticidad.categoria | titulo }}</span>
+      </div>
+      {% endfor %}
+      <div style="margin-top:16px">
+        <div class="total"><span>Tiempo disponible</span><span class="cifra">{{ ronda.tiempo_disponible }} min</span></div>
+        <div class="total"><span>Tiempo estimado del recorrido</span><span class="cifra">{{ total | round | int }} min</span></div>
+      </div>
+    </section>
+
+    <section class="tarjeta">
+      <h2>Trazabilidad del orden</h2>
+      <p class="ayuda">Orden propuesto por el sistema, orden confirmado por el responsable y orden en que se ejecutó (según la hora registrada de cada activo).</p>
+      <table class="tabla">
+        <tr><th>Activo</th><th>Propuesto</th><th>Confirmado</th><th>Ejecutado</th><th>Motivo del ajuste</th></tr>
+        {% for parada in paradas %}
+        {% set ra = parada.ra %}
+        <tr>
+          <td><b>{{ ra.activo.codigo }}</b></td>
+          <td>{{ ra.orden_propuesto or "—" }}</td>
+          <td>{{ ra.orden_planificado }}</td>
+          <td>{% if ra in ejecucion %}{{ ejecucion.index(ra) + 1 }}{% else %}—{% endif %}</td>
+          <td>{{ ra.motivo_ajuste or "—" }}</td>
+        </tr>
+        {% endfor %}
+      </table>
+    </section>
+
+    <section class="tarjeta">
+      <h2>Verificaciones, evidencia y hallazgos</h2>
+      {% for verificacion in verificaciones %}
+      <div class="verificacion">
+        <div class="cab">
+          <b>{{ verificacion.ronda_activo.activo.codigo }}</b>
+          <span class="estado">{{ RESULTADOS[verificacion.resultado] }}</span>
+        </div>
+        <div class="meta-verificacion">
+          Inspección: {{ verificacion.fecha_hora | fecha_hora }} · Recibido: {{ verificacion.fecha_hora_recepcion | fecha_hora }} · {{ verificacion.usuario.nombre }}
+        </div>
+        {% if verificacion.observaciones %}<p class="texto-verificacion">{{ verificacion.observaciones }}</p>{% endif %}
+        {% for hallazgo in verificacion.hallazgos %}
+        <div class="aviso {% if hallazgo.requiere_atencion_inmediata %}error{% endif %}" style="margin-top:8px">
+          <b>Hallazgo: {{ hallazgo.tipo }}.</b> {{ hallazgo.descripcion }}
+          {% if hallazgo.requiere_atencion_inmediata %}<br><b>Requiere atención inmediata</b> · derivado al procedimiento correctivo.{% endif %}
+        </div>
+        {% endfor %}
+        {% if verificacion.evidencias %}
+        <div class="adjuntos">
+          {% for evidencia in verificacion.evidencias %}
+          <a class="miniatura" href="/evidencia/{{ evidencia.id }}" target="_blank"><img src="/evidencia/{{ evidencia.id }}" alt="Evidencia {{ loop.index }} de {{ verificacion.ronda_activo.activo.codigo }}"></a>
+          {% endfor %}
+        </div>
+        {% endif %}
+      </div>
+      {% else %}
+      <p class="ayuda" style="margin:0">Todavía no hay verificaciones registradas.</p>
+      {% endfor %}
+    </section>
   </div>
-  <div class="col">
+
+  <div class="col-der">
+    <section class="tarjeta">
+      <h2>Cobertura de la ronda</h2>
+      <p class="ayuda">Con la criticidad vigente al planificar. Los pendientes y los no accesibles cuentan en el total.</p>
+      <div class="resumen">
+        <div><div class="rot">Cobertura operativa</div><div class="val grande">{{ porcentaje(cobertura.operativa) }}</div></div>
+        <div><div class="rot">Ponderada por criticidad</div><div class="val grande">{{ porcentaje(cobertura.ponderada) }}</div></div>
+      </div>
+      <div class="total"><span>Inspeccionados</span><span class="cifra">{{ cobertura.inspeccionados }} de {{ cobertura.total }}</span></div>
+      <div class="total"><span>No accesibles</span><span class="cifra">{{ cobertura.no_accesibles }}</span></div>
+      <div class="total"><span>Pendientes</span><span class="cifra">{{ cobertura.pendientes }}</span></div>
+      <div class="total"><span>Peso inspeccionado</span><span class="cifra">{{ cobertura.peso_inspeccionado }} de {{ cobertura.peso_total }}</span></div>
+      <table class="tabla" style="margin-top:12px">
+        <tr><th>Criticidad</th><th>Peso</th><th>Inspeccionados</th></tr>
+        {% for nivel, peso in [("alta", 3), ("media", 2), ("baja", 1)] %}
+        <tr>
+          <td><span class="marca {{ nivel }}">{{ nivel | titulo }}</span></td>
+          <td>{{ peso }}</td>
+          <td>{{ cobertura.por_criticidad[nivel].inspeccionados }} de {{ cobertura.por_criticidad[nivel].total }}</td>
+        </tr>
+        {% endfor %}
+      </table>
+      <p class="ayuda" style="margin-top:10px">Los pesos (alta 3, media 2, baja 1) ponderan el indicador; no son valores de riesgo.</p>
+    </section>
+
     {% include "_condiciones_lectura.html" %}
+
+    {% if ronda.estado == "en_ejecucion" %}
+    <form method="post" action="/rondas/{{ ronda.id }}/cerrar" class="acciones">
+      <button type="submit" class="boton">Cerrar la ronda</button>
+    </form>
+    <p class="ayuda">Al cerrarla, los activos sin registro quedan como pendientes y la cobertura queda como resultado final.</p>
+    {% endif %}
   </div>
 </div>
 {% endblock %}
