@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block contenido %}
+<div class="encabezado">
+  <h1>Rondas de inspección</h1>
+</div>
+
+<div class="cuerpo" style="flex-direction:column">
+  <div class="acciones" style="justify-content:flex-end">
+    <a class="boton primario" style="flex:none; width:200px" href="/rondas/nueva">Nueva ronda</a>
+  </div>
+  <section class="tarjeta" style="width:100%">
+    {% if rondas %}
+    <table class="tabla">
+      <tr>
+        <th>Ronda</th><th>Fecha planificada</th><th>Medio</th><th>Origen</th>
+        <th>Tiempo disponible</th><th>Activos</th><th>Estado</th><th></th>
+      </tr>
+      {% for ronda in rondas %}
+      <tr>
+        <td><b>{{ ronda.numero }}</b></td>
+        <td>{{ ronda.fecha_planificada | fecha }}</td>
+        <td>{{ ronda.medio_inspeccion }}</td>
+        <td>{{ nombre_de_base(ronda.origen_x, ronda.origen_y) }}</td>
+        <td>{{ ronda.tiempo_disponible }} min</td>
+        <td>{{ ronda.activos | length }}</td>
+        <td><span class="estado">{{ ESTADOS_RONDA[ronda.estado] }}</span></td>
+        <td>
+          {% if ronda.estado == "borrador" %}<a href="/rondas/{{ ronda.id }}">Planificar</a>
+          {% else %}<a href="/rondas/{{ ronda.id }}/detalle">Ver</a>{% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </table>
+    {% else %}
+    <p class="ayuda" style="margin:0">Todavía no hay rondas. Usá "Nueva ronda" para crear la primera.</p>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

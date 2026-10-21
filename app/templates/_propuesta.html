@@ -1,0 +1,8 @@
+<section class="tarjeta">
+  <h2>Orden propuesto por el sistema</h2>
+  {% if not ronda.activos %}
+  <p class="ayuda">Primero elegí los activos de la ronda y guardá la selección.</p>
+  {% else %}
+  <p class="ayuda">{{ ronda.activos | length }} activos seleccionados.</p>
+  {% endif %}
+</section>

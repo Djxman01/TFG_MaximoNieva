@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+
+{% block contenido %}
+<div class="encabezado">
+  <div class="miga"><a href="/rondas">Rondas</a><span>›</span>Nueva</div>
+  <h1>Nueva ronda de inspección</h1>
+</div>
+
+{% if errores %}
+<div class="aviso error" role="alert" style="margin:16px 32px 0">
+  <b>No se pudo crear la ronda. Revisá estos datos:</b>
+  <ul style="margin:6px 0 0; padding-left:18px">
+    {% for error in errores %}<li>{{ error }}</li>{% endfor %}
+  </ul>
+</div>
+{% endif %}
+
+<form method="post" action="/rondas" novalidate>
+<div class="cuerpo">
+  <div class="col-izq">
+    <section class="tarjeta">
+      <h2>Datos de la ronda</h2>
+      <p class="ayuda">Con estos datos el sistema calcula el tiempo de cada tramo: distancia ÷ velocidad media + duración de la inspección.</p>
+      <div class="fila-campos">
+        <div class="campo">
+          <label for="fecha_planificada">Fecha planificada</label>
+          <input type="date" id="fecha_planificada" name="fecha_planificada" value="{{ datos.fecha_planificada }}">
+        </div>
+        <div class="campo">
+          <label for="medio_inspeccion">Medio de inspección</label>
+          <select id="medio_inspeccion" name="medio_inspeccion">
+            {% for medio in medios %}
+            <option value="{{ medio }}" {% if medio == datos.medio_inspeccion %}selected{% endif %}>{{ medio }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="campo">
+          <label for="origen">Origen del recorrido</label>
+          <select id="origen" name="origen">
+            <option value="">Elegir…</option>
+            {% for base in bases %}
+            <option value="{{ base }}" {% if base == datos.origen %}selected{% endif %}>{{ base }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+      <div class="fila-campos">
+        <div class="campo">
+          <label for="tiempo_disponible">Tiempo disponible (min)</label>
+          <input type="number" id="tiempo_disponible" name="tiempo_disponible" min="1" value="{{ datos.tiempo_disponible }}">
+        </div>
+        <div class="campo">
+          <label for="velocidad_media">Velocidad media (km/h)</label>
+          <input type="number" id="velocidad_media" name="velocidad_media" min="1" step="any" value="{{ datos.velocidad_media }}">
+        </div>
+        <div class="campo">
+          <label for="duracion_inspeccion">Duración de cada inspección (min)</label>
+          <input type="number" id="duracion_inspeccion" name="duracion_inspeccion" min="1" value="{{ datos.duracion_inspeccion }}">
+        </div>
+      </div>
+      <div class="campo">
+        <label for="restricciones">Restricciones conocidas (opcional)</label>
+        <textarea id="restricciones" name="restricciones" rows="3" maxlength="1000" placeholder="Por ejemplo: camino de acceso a un pozo restringido por obra.">{{ datos.restricciones }}</textarea>
+      </div>
+      <div class="acciones">
+        <a class="boton" href="/rondas">Cancelar</a>
+        <button type="submit" class="boton primario">Crear ronda</button>
+      </div>
+    </section>
+  </div>
+  <div class="col-der">
+    <section class="tarjeta">
+      <h2>Siguientes pasos</h2>
+      <ol class="lista">
+        <li>Elegir los activos de la ronda.</li>
+        <li>Generar la propuesta de orden.</li>
+        <li>Revisar y ajustar el recorrido.</li>
+        <li>Registrar las condiciones de salida y confirmar.</li>
+      </ol>
+    </section>
+  </div>
+</div>
+</form>
+{% endblock %}

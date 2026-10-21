@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block titulo %}Planificación · Ronda {{ ronda.numero }}{% endblock %}
+
+{% block contenido %}
+<div class="encabezado">
+  <div class="miga"><a href="/rondas">Rondas</a><span>›</span>{{ ronda.numero }}</div>
+  <h1>Planificación de la ronda</h1>
+</div>
+
+{% include "_tira_ronda.html" %}
+
+{% if ronda.estado != "borrador" %}
+<p class="aviso atencion" style="margin:16px 32px 0">La ronda ya está {{ ESTADOS_RONDA[ronda.estado] | lower }}: su planificación no se puede modificar. <a href="/rondas/{{ ronda.id }}/detalle">Ver la ronda</a>.</p>
+{% endif %}
+{% if error %}<p class="aviso error" role="alert" style="margin:16px 32px 0">{{ error }}</p>{% endif %}
+{% if aviso %}<p class="aviso atencion" style="margin:16px 32px 0">{{ aviso }}</p>{% endif %}
+
+<div class="cuerpo">
+  <div class="col-izq">
+    {% block mapa %}{% endblock %}
+    <section class="tarjeta">
+      <h2>Activos de la ronda</h2>
+      <p class="ayuda">Marcá los activos que forman parte de la ronda. Al cambiar la selección, la propuesta de orden se vuelve a generar.</p>
+      <form method="post" action="/rondas/{{ ronda.id }}/activos">
+        {% for activo in seleccionables %}
+        {% set vigente = activo.criticidad_vigente() %}
+        <label class="factor">
+          <input type="checkbox" name="activos" value="{{ activo.id }}" {% if activo.id in ids_en_ronda %}checked{% endif %} {% if ronda.estado != "borrador" %}disabled{% endif %}>
+          <span class="caja"></span>
+          <span class="texto" style="flex:1">
+            <span class="principal">{{ activo.codigo }}</span>
+            <span class="evidencia">{{ activo.tipo }} · {{ "con" if activo.telesupervision else "sin" }} telesupervisión</span>
+          </span>
+          {% if vigente %}<span class="marca {{ vigente.categoria }}">{{ vigente.categoria | titulo }}</span>
+          {% else %}<span class="marca neutra">Sin evaluar</span>{% endif %}
+        </label>
+        {% endfor %}
+        {% if ronda.estado == "borrador" %}
+        <div class="acciones" style="margin-top:14px">
+          <button type="submit" class="boton">Guardar selección</button>
+        </div>
+        {% endif %}
+      </form>
+    </section>
+  </div>
+
+  <div class="col-der">
+    {% include "_propuesta.html" %}
+  </div>
+</div>
+{% endblock %}

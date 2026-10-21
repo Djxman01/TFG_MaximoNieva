@@ -4,19 +4,21 @@ Los nombres siguen el diagrama de clases de la tesis, escritos en el estilo de
 Python (fecha_hora_evaluacion en lugar de fechaHoraEvaluacion).
 """
 
-from datetime import datetime
+from datetime import date, datetime
 from decimal import Decimal
 
 from sqlalchemy import (
     Boolean,
     CheckConstraint,
     Column,
+    Date,
     DateTime,
     ForeignKey,
     Numeric,
     String,
     Table,
     Text,
+    UniqueConstraint,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -24,6 +26,21 @@ from app.database import Base
 
 # Pesos de cada categoría para la cobertura ponderada (sección 4.6).
 PESOS = {"alta": 3, "media": 2, "baja": 1}
+
+# Valores posibles de los estados. En la base se guardan sin espacios ni tildes;
+# a la derecha, el texto que se muestra en pantalla.
+ESTADOS_RONDA = {
+    "borrador": "Borrador",
+    "planificada": "Planificada",
+    "en_ejecucion": "En ejecución",
+    "cerrada": "Cerrada",
+}
+CONDICIONES = {"apto": "Apto", "condicionado": "Condicionado", "no_apto": "No apto"}
+ESTADOS_ATENCION = {
+    "pendiente": "Pendiente",
+    "inspeccionado": "Inspeccionado",
+    "no_accesible": "No accesible",
+}
 
 
 class Usuario(Base):
@@ -145,3 +162,100 @@ class CriticidadActivo(Base):
     def peso(self) -> int:
         """Ponderador para la cobertura: alta = 3, media = 2, baja = 1."""
         return PESOS[self.categoria]
+
+
+class Ronda(Base):
+    """Ronda de inspección (HU-005).
+
+    Recorre los estados borrador → planificada → en_ejecucion → cerrada.
+    """
+
+    __tablename__ = "ronda"
+    __table_args__ = (
+        CheckConstraint(
+            "estado IN ('borrador', 'planificada', 'en_ejecucion', 'cerrada')",
+            name="ck_ronda_estado",
+        ),
+        CheckConstraint(
+            "condicion_clima IN ('apto', 'condicionado', 'no_apto')", name="ck_ronda_clima"
+        ),
+        CheckConstraint(
+            "condicion_acceso IN ('apto', 'condicionado', 'no_apto')", name="ck_ronda_acceso"
+        ),
+        CheckConstraint(
+            "condicion_conectividad IN ('apto', 'condicionado', 'no_apto')",
+            name="ck_ronda_conectividad",
+        ),
+        CheckConstraint("tiempo_disponible > 0", name="ck_ronda_tiempo"),
+        CheckConstraint("velocidad_media > 0", name="ck_ronda_velocidad"),
+        CheckConstraint("duracion_inspeccion > 0", name="ck_ronda_duracion"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    usuario_id: Mapped[int] = mapped_column(ForeignKey("usuario.id"))
+    fecha_planificada: Mapped[date] = mapped_column(Date)
+    medio_inspeccion: Mapped[str] = mapped_column(String(50))
+    tiempo_disponible: Mapped[int]  # minutos
+    origen_x: Mapped[Decimal] = mapped_column(Numeric(12, 2))  # este, en metros
+    origen_y: Mapped[Decimal] = mapped_column(Numeric(12, 2))  # norte, en metros
+    velocidad_media: Mapped[Decimal] = mapped_column(Numeric(6, 2))  # km/h
+    duracion_inspeccion: Mapped[int]  # minutos por activo
+    restricciones: Mapped[str] = mapped_column(Text, default="")
+    estado: Mapped[str] = mapped_column(String(20), default="borrador")
+    # Condiciones de salida (HU-014). Vacías hasta que se registran.
+    condicion_clima: Mapped[str | None] = mapped_column(String(15), nullable=True)
+    condicion_acceso: Mapped[str | None] = mapped_column(String(15), nullable=True)
+    condicion_conectividad: Mapped[str | None] = mapped_column(String(15), nullable=True)
+
+    usuario: Mapped[Usuario] = relationship()
+    activos: Mapped[list["RondaActivo"]] = relationship(
+        back_populates="ronda", cascade="all, delete-orphan", order_by="RondaActivo.id"
+    )
+
+    @property
+    def numero(self) -> str:
+        """Número para mostrar, por ejemplo "#024"."""
+        return f"#{self.id:03d}"
+
+
+class RondaActivo(Base):
+    """Un activo dentro de una ronda (HU-006 en adelante).
+
+    Guarda el orden propuesto por el sistema, el orden planificado que confirmó
+    el Líder y lo que pasó al ejecutar la ronda.
+    """
+
+    __tablename__ = "ronda_activo"
+    __table_args__ = (
+        # Un activo no puede estar dos veces en la misma ronda (HU-006 c3).
+        UniqueConstraint("ronda_id", "activo_id", name="uq_ronda_activo"),
+        # Dos activos no pueden ocupar la misma posición del recorrido.
+        UniqueConstraint("ronda_id", "orden_propuesto", name="uq_ronda_orden_propuesto"),
+        UniqueConstraint("ronda_id", "orden_planificado", name="uq_ronda_orden_planificado"),
+        CheckConstraint(
+            "estado_atencion IN ('pendiente', 'inspeccionado', 'no_accesible')",
+            name="ck_ronda_activo_estado",
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    ronda_id: Mapped[int] = mapped_column(ForeignKey("ronda.id", ondelete="CASCADE"))
+    activo_id: Mapped[int] = mapped_column(ForeignKey("activo.id"))
+    # Evaluación de criticidad vigente al generar la propuesta: queda congelada
+    # para la ronda aunque el activo se reevalúe después (cobertura, HU-012).
+    criticidad_activo_id: Mapped[int | None] = mapped_column(
+        ForeignKey("criticidad_activo.id"), nullable=True
+    )
+    # NULL en orden_propuesto = quedó fuera del recorrido por tiempo (HU-007 c5).
+    orden_propuesto: Mapped[int | None] = mapped_column(nullable=True)
+    orden_planificado: Mapped[int | None] = mapped_column(nullable=True)
+    estado_atencion: Mapped[str] = mapped_column(String(20), default="pendiente")
+    fecha_hora_atencion: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    motivo_ajuste: Mapped[str | None] = mapped_column(Text, nullable=True)
+    observacion_atencion: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    ronda: Mapped[Ronda] = relationship(back_populates="activos")
+    activo: Mapped[Activo] = relationship()
+    criticidad: Mapped[CriticidadActivo | None] = relationship()

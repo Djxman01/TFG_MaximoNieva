@@ -1,0 +1,11 @@
+<div class="tira">
+  <div>
+    <div class="nombre">Ronda {{ ronda.numero }}</div>
+    <div class="meta">{{ ronda.fecha_planificada | fecha }} · {{ ronda.medio_inspeccion }} · Origen {{ nombre_de_base(ronda.origen_x, ronda.origen_y) }} · {{ ronda.tiempo_disponible }} min disponibles · {{ ronda.velocidad_media | float | round(1) }} km/h · {{ ronda.duracion_inspeccion }} min por inspección</div>
+    {% if ronda.restricciones %}<div class="meta">Restricciones: {{ ronda.restricciones }}</div>{% endif %}
+  </div>
+  <div class="chips">
+    <span class="chip">{{ ESTADOS_RONDA[ronda.estado] }}</span>
+    {% block chips_extra %}{% endblock %}
+  </div>
+</div>
