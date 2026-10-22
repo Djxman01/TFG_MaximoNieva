@@ -28,13 +28,16 @@ las personas y las coordenadas no corresponden a ninguna operación real.
 Requiere **Docker** (con Docker Compose) y conexión a internet la primera vez, para descargar
 las imágenes. El fondo del mapa también se descarga de internet (OpenStreetMap).
 
-1. Crear el archivo de configuración a partir del ejemplo:
+1. **Solo la primera vez:** crear el archivo de configuración a partir del ejemplo.
 
    ```bash
-   cp .env.example .env
+   cp -n .env.example .env
    ```
 
-   Para la demo alcanza con copiarlo. En un servidor real hay que reemplazar las dos claves.
+   `-n` evita pisar un `.env` que ya exista. Para la demo alcanza con copiarlo; en un servidor
+   real hay que reemplazar las dos claves **antes** del primer arranque. PostgreSQL toma la
+   contraseña una sola vez, cuando crea la base: si después se cambia en `.env`, la aplicación
+   no puede conectarse (ver "Problemas frecuentes").
 
 2. Levantar los servicios (la primera vez tarda unos minutos):
 
@@ -103,6 +106,22 @@ los mismos que muestran las figuras.
 9. **Rondas → Ver**: cobertura operativa 20 % y ponderada 27 %, estado de cada activo, mapa
    con el recorrido confirmado, trazabilidad del orden (propuesto, confirmado y ejecutado) y la
    verificación con su foto y su hallazgo. **Cerrar la ronda**.
+
+### Problemas frecuentes
+
+**"Container … is restarting" y en `docker compose logs app` aparece "password authentication
+failed".** La contraseña de `.env` no es la misma con la que se creó la base (por ejemplo,
+porque se volvió a copiar `.env.example`). Hay dos salidas:
+
+- Conservar los datos: actualizar la contraseña de la base con la de `.env` y reiniciar.
+
+  ```bash
+  docker compose exec db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "ALTER USER \"$POSTGRES_USER\" PASSWORD '"'"'$POSTGRES_PASSWORD'"'"'"'
+  docker compose restart app
+  ```
+
+- Empezar de cero (borra la base y la evidencia): `docker compose down -v`, después
+  `docker compose up -d --build` y los datos semilla.
 
 ## Seguridad de acceso
 
