@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+
+{% block titulo %}{{ "Editar " ~ activo.codigo if activo else "Nuevo activo" }}{% endblock %}
+
+{% block contenido %}
+<div class="encabezado">
+  <div class="miga"><a href="/activos">Activos</a><span>›</span>{{ activo.codigo if activo else "Nuevo" }}</div>
+  <h1>{{ "Editar activo" if activo else "Nuevo activo" }}</h1>
+</div>
+
+{% if errores %}
+<div class="aviso error" role="alert" style="margin:16px 32px 0">
+  <b>No se pudo guardar el activo. Revisá estos datos:</b>
+  <ul style="margin:6px 0 0; padding-left:18px">{% for error in errores %}<li>{{ error }}</li>{% endfor %}</ul>
+</div>
+{% endif %}
+
+<form method="post" action="{{ '/activos/' ~ activo.id if activo else '/activos' }}" novalidate>
+<div class="cuerpo">
+  <div class="col-izq">
+    <section class="tarjeta">
+      <h2>Datos del activo</h2>
+      <p class="ayuda">Los campos con <span class="obligatorio">*</span> son obligatorios.</p>
+      <div class="fila-campos">
+        <div class="campo">
+          <label for="codigo">Código <span class="obligatorio">*</span></label>
+          <input type="text" id="codigo" name="codigo" maxlength="50" value="{{ datos.codigo }}" placeholder="Por ejemplo: Pozo A-14">
+        </div>
+        <div class="campo">
+          <label for="tipo">Tipo <span class="obligatorio">*</span></label>
+          <input type="text" id="tipo" name="tipo" maxlength="50" list="tipos" value="{{ datos.tipo }}">
+          <datalist id="tipos">{% for tipo in tipos %}<option value="{{ tipo }}">{% endfor %}</datalist>
+        </div>
+        <div class="campo">
+          <label for="estado">Estado</label>
+          <select id="estado" name="estado">
+            <option value="activo" {% if datos.estado == "activo" %}selected{% endif %}>Activo</option>
+            <option value="inactivo" {% if datos.estado == "inactivo" %}selected{% endif %}>Inactivo</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="grupo-titulo"><span class="nombre">Ubicación <span class="obligatorio">*</span></span>
+        <span class="detalle">— POSGAR 2007, faja 2 (EPSG:5344), en metros</span></div>
+      <div class="fila-campos">
+        <div class="campo">
+          <label for="coordenada_x">X (este)</label>
+          <input type="text" id="coordenada_x" name="coordenada_x" inputmode="decimal" value="{{ datos.coordenada_x }}" placeholder="2512000,00">
+        </div>
+        <div class="campo">
+          <label for="coordenada_y">Y (norte)</label>
+          <input type="text" id="coordenada_y" name="coordenada_y" inputmode="decimal" value="{{ datos.coordenada_y }}" placeholder="6515000,00">
+        </div>
+      </div>
+      <p class="ayuda">O bien, si se tiene la posición de un GPS, dejar X e Y vacíos y cargar latitud y longitud: el sistema las convierte a metros.</p>
+      <div class="fila-campos">
+        <div class="campo">
+          <label for="latitud">Latitud (GPS)</label>
+          <input type="text" id="latitud" name="latitud" inputmode="decimal" value="{{ datos.latitud }}" placeholder="-31,5000">
+        </div>
+        <div class="campo">
+          <label for="longitud">Longitud (GPS)</label>
+          <input type="text" id="longitud" name="longitud" inputmode="decimal" value="{{ datos.longitud }}" placeholder="-68,8700">
+        </div>
+      </div>
+      {% if posicion_gps %}<p class="ayuda">Posición actual: latitud {{ "%.5f" | format(posicion_gps[0]) }}, longitud {{ "%.5f" | format(posicion_gps[1]) }}.</p>{% endif %}
+
+      <div class="grupo-titulo"><span class="nombre">Datos operativos</span></div>
+      <label class="factor">
+        <input type="checkbox" name="telesupervision" value="true" {% if datos.telesupervision %}checked{% endif %}>
+        <span class="caja"></span>
+        <span class="texto"><span class="principal">Tiene telesupervisión</span>
+          <span class="evidencia">No interviene en la criticidad; se usa como desempate en la propuesta de orden.</span></span>
+      </label>
+      <div class="campo" style="margin-top:12px">
+        <label for="condicion_acceso">Condición de acceso</label>
+        <input type="text" id="condicion_acceso" name="condicion_acceso" maxlength="100" value="{{ datos.condicion_acceso }}" placeholder="Por ejemplo: camino de tierra">
+      </div>
+
+      <div class="acciones">
+        <a class="boton" href="/activos">Cancelar</a>
+        <button type="submit" class="boton primario">Guardar activo</button>
+      </div>
+    </section>
+  </div>
+  <div class="col-der">
+    <section class="tarjeta">
+      <h2>Criticidad</h2>
+      <p class="ayuda">La criticidad no se carga acá: se calcula con los factores en la pantalla de evaluación{% if activo %} (<a href="/activos/{{ activo.id }}/criticidad">evaluar este activo</a>){% endif %}.</p>
+    </section>
+  </div>
+</div>
+</form>
+{% endblock %}

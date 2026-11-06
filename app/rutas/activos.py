@@ -1,10 +1,11 @@
-"""Pantallas de activos y de evaluación de criticidad (HU-002 consulta, HU-004)."""
+"""Pantallas de activos y de evaluación de criticidad (HU-002, HU-004)."""
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi.responses import RedirectResponse
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.coordenadas import a_lat_lon, desde_lat_lon
 from app.criticidad import MATRIZ, evaluar_factores
 from app.database import obtener_db
 from app.horario import ahora
@@ -70,18 +71,199 @@ def contexto_evaluacion(db: Session, activo: Activo, ids_marcados: list[int]) ->
     }
 
 
+# ---------- HU-002: alta y edición de activos ----------
+
+TIPOS_DE_ACTIVO = ["Pozo de petróleo", "Pozo de gas", "Batería", "Manifold", "Planta"]
+
+# Rango aproximado de la faja 2 de POSGAR 2007 (EPSG:5344), en metros.
+ESTE_MINIMO, ESTE_MAXIMO = 2_300_000, 2_700_000
+NORTE_MINIMO, NORTE_MAXIMO = 3_800_000, 7_400_000
+
+
+def leer_decimal(texto: str) -> float | None:
+    """Convierte "2512000,50" o "2512000.50" en número. None si está vacío o no es número."""
+    texto = (texto or "").strip().replace(" ", "").replace(",", ".")
+    if not texto:
+        return None
+    try:
+        return float(texto)
+    except ValueError:
+        return None
+
+
+def datos_de_activo(activo: Activo | None) -> dict:
+    """Valores iniciales del formulario: vacío para un activo nuevo."""
+    if activo is None:
+        return {
+            "codigo": "", "tipo": "", "coordenada_x": "", "coordenada_y": "",
+            "latitud": "", "longitud": "", "estado": "activo",
+            "telesupervision": False, "condicion_acceso": "",
+        }
+    return {
+        "codigo": activo.codigo,
+        "tipo": activo.tipo,
+        "coordenada_x": f"{float(activo.coordenada_x):.2f}",
+        "coordenada_y": f"{float(activo.coordenada_y):.2f}",
+        "latitud": "",
+        "longitud": "",
+        "estado": activo.estado,
+        "telesupervision": activo.telesupervision,
+        "condicion_acceso": activo.condicion_acceso,
+    }
+
+
+def validar_activo(db: Session, datos: dict, activo_id: int | None) -> tuple[dict, list[str]]:
+    """Revisa el formulario de activo (HU-002 c3). Devuelve los valores y los errores.
+
+    La ubicación se carga en metros (Gauss-Krüger, faja 2) o, si se tiene la
+    posición de un GPS, en latitud y longitud: en ese caso se convierte con pyproj.
+    """
+    errores = []
+    valores = {}
+
+    codigo = datos["codigo"].strip()
+    if not codigo:
+        errores.append("Falta el código del activo.")
+    else:
+        existente = db.scalars(select(Activo).where(Activo.codigo == codigo)).first()
+        if existente is not None and existente.id != activo_id:
+            errores.append(f"Ya existe un activo con el código {codigo}.")
+        valores["codigo"] = codigo
+
+    tipo = datos["tipo"].strip()
+    if not tipo:
+        errores.append("Falta el tipo de activo.")
+    valores["tipo"] = tipo
+
+    x, y = leer_decimal(datos["coordenada_x"]), leer_decimal(datos["coordenada_y"])
+    latitud, longitud = leer_decimal(datos["latitud"]), leer_decimal(datos["longitud"])
+    if x is None and y is None and latitud is not None and longitud is not None:
+        # Posición de GPS: se pasa a metros en la faja 2.
+        x, y = desde_lat_lon(latitud, longitud)
+    if x is None or y is None:
+        errores.append(
+            "Falta la ubicación: X (este) e Y (norte) en metros, o latitud y longitud del GPS."
+        )
+    elif not (ESTE_MINIMO <= x <= ESTE_MAXIMO and NORTE_MINIMO <= y <= NORTE_MAXIMO):
+        errores.append(
+            "La ubicación queda fuera de la faja 2 (POSGAR 2007): revisá que X sea el este "
+            "(alrededor de 2.500.000) e Y el norte."
+        )
+    else:
+        valores["coordenada_x"], valores["coordenada_y"] = round(x, 2), round(y, 2)
+
+    if datos["estado"] not in ("activo", "inactivo"):
+        errores.append("Elegí el estado del activo.")
+    valores["estado"] = datos["estado"]
+    valores["telesupervision"] = bool(datos["telesupervision"])
+    valores["condicion_acceso"] = datos["condicion_acceso"].strip()
+    return valores, errores
+
+
+def mostrar_formulario_activo(request, usuario, activo, datos, errores, status_code=200):
+    # Para un activo existente se muestra también su posición en latitud y longitud.
+    posicion_gps = a_lat_lon(activo.coordenada_x, activo.coordenada_y) if activo else None
+    return plantillas.TemplateResponse(
+        request,
+        "activo_formulario.html",
+        {
+            "usuario": usuario,
+            "activo": activo,
+            "datos": datos,
+            "errores": errores,
+            "tipos": TIPOS_DE_ACTIVO,
+            "posicion_gps": posicion_gps,
+        },
+        status_code=status_code,
+    )
+
+
+def leer_formulario_activo(
+    codigo: str = Form(default=""),
+    tipo: str = Form(default=""),
+    coordenada_x: str = Form(default=""),
+    coordenada_y: str = Form(default=""),
+    latitud: str = Form(default=""),
+    longitud: str = Form(default=""),
+    estado: str = Form(default="activo"),
+    telesupervision: bool = Form(default=False),
+    condicion_acceso: str = Form(default=""),
+) -> dict:
+    """Junta los campos del formulario en un diccionario (se usa como dependencia)."""
+    return {
+        "codigo": codigo, "tipo": tipo, "coordenada_x": coordenada_x,
+        "coordenada_y": coordenada_y, "latitud": latitud, "longitud": longitud,
+        "estado": estado, "telesupervision": telesupervision,
+        "condicion_acceso": condicion_acceso,
+    }
+
+
+@router.get("/activos/nuevo")
+def formulario_activo_nuevo(request: Request, usuario: Usuario = Depends(solo_lider)):
+    return mostrar_formulario_activo(request, usuario, None, datos_de_activo(None), [])
+
+
+@router.post("/activos")
+def crear_activo(
+    request: Request,
+    datos: dict = Depends(leer_formulario_activo),
+    usuario: Usuario = Depends(solo_lider),
+    db: Session = Depends(obtener_db),
+):
+    valores, errores = validar_activo(db, datos, None)
+    if errores:
+        return mostrar_formulario_activo(request, usuario, None, datos, errores, 400)
+    activo = Activo(**valores)
+    db.add(activo)
+    db.commit()
+    return RedirectResponse(f"/activos?guardado={activo.id}", status_code=303)
+
+
+@router.get("/activos/{activo_id}/editar")
+def formulario_activo_editar(
+    activo_id: int,
+    request: Request,
+    usuario: Usuario = Depends(solo_lider),
+    db: Session = Depends(obtener_db),
+):
+    activo = buscar_activo(db, activo_id)
+    return mostrar_formulario_activo(request, usuario, activo, datos_de_activo(activo), [])
+
+
+@router.post("/activos/{activo_id}")
+def guardar_activo(
+    activo_id: int,
+    request: Request,
+    datos: dict = Depends(leer_formulario_activo),
+    usuario: Usuario = Depends(solo_lider),
+    db: Session = Depends(obtener_db),
+):
+    activo = buscar_activo(db, activo_id)
+    valores, errores = validar_activo(db, datos, activo.id)
+    if errores:
+        return mostrar_formulario_activo(request, usuario, activo, datos, errores, 400)
+    for campo, valor in valores.items():
+        setattr(activo, campo, valor)
+    db.commit()
+    return RedirectResponse(f"/activos?guardado={activo.id}", status_code=303)
+
+
 # ---------- Rutas ----------
 
 
 @router.get("/activos")
 def listar_activos(
     request: Request,
+    guardado: int | None = None,
     usuario: Usuario = Depends(cualquier_rol),
     db: Session = Depends(obtener_db),
 ):
     activos = list(db.scalars(select(Activo).order_by(Activo.codigo)))
+    guardado_activo = db.get(Activo, guardado) if guardado else None
     return plantillas.TemplateResponse(
-        request, "activos.html", {"usuario": usuario, "activos": activos}
+        request,
+        "activos.html",
+        {"usuario": usuario, "activos": activos, "guardado": guardado_activo},
     )
 
 

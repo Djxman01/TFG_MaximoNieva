@@ -6,7 +6,14 @@
   <div class="miga">Criticidad vigente de cada activo{% if usuario.rol == "lider" %}. Para evaluarla, entrar en el activo{% endif %}.</div>
 </div>
 
-<div class="cuerpo">
+{% if guardado %}<p class="aviso exito" role="status" style="margin:16px 32px 0">{{ guardado.codigo }}: activo guardado.</p>{% endif %}
+
+<div class="cuerpo" style="flex-direction:column">
+  {% if usuario.rol == "lider" %}
+  <div class="acciones" style="justify-content:flex-end">
+    <a class="boton primario" style="flex:none; width:200px" href="/activos/nuevo">Nuevo activo</a>
+  </div>
+  {% endif %}
   <section class="tarjeta" style="width:100%">
     <table class="tabla">
       <tr>
@@ -26,7 +33,7 @@
           {% else %}<span class="marca neutra">Sin evaluar</span>{% endif %}
         </td>
         <td>{{ vigente.fecha_hora_evaluacion | fecha if vigente else "—" }}</td>
-        <td>{% if usuario.rol == "lider" %}<a href="/activos/{{ activo.id }}/criticidad">Evaluar</a>{% endif %}</td>
+        <td>{% if usuario.rol == "lider" %}<a href="/activos/{{ activo.id }}/criticidad">Evaluar</a> · <a href="/activos/{{ activo.id }}/editar">Editar</a>{% endif %}</td>
       </tr>
       {% endfor %}
     </table>
