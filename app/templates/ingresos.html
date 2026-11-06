@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block contenido %}
+<div class="encabezado">
+  <h1>Registro de ingresos</h1>
+  <div class="miga">Últimos 200 intentos de ingreso al sistema. Luego de 10 intentos fallidos seguidos, la cuenta queda bloqueada 15 minutos.</div>
+</div>
+
+<div class="cuerpo" style="flex-direction:column">
+  {% if bloqueados %}
+  <section class="tarjeta" style="width:100%">
+    <h2>Cuentas bloqueadas ahora</h2>
+    <table class="tabla" style="margin-top:10px">
+      <tr><th>Usuario</th><th>Correo</th><th>Bloqueada hasta</th></tr>
+      {% for cuenta in bloqueados %}
+      <tr><td>{{ cuenta.nombre }}</td><td>{{ cuenta.email }}</td><td>{{ cuenta.bloqueado_hasta | fecha_hora }}</td></tr>
+      {% endfor %}
+    </table>
+  </section>
+  {% endif %}
+
+  <section class="tarjeta" style="width:100%">
+    {% if intentos %}
+    <table class="tabla">
+      <tr><th>Fecha y hora</th><th>Correo usado</th><th>Usuario</th><th>Resultado</th></tr>
+      {% for intento in intentos %}
+      <tr>
+        <td>{{ intento.fecha_hora | fecha_hora }}</td>
+        <td>{{ intento.email }}</td>
+        <td>{{ intento.usuario.nombre if intento.usuario else "— (no existe)" }}</td>
+        <td><span class="estado {{ 'no-apto' if intento.resultado == 'bloqueado' else ('condicionado' if intento.resultado == 'fallido' else '') }}">{{ resultados[intento.resultado] }}</span></td>
+      </tr>
+      {% endfor %}
+    </table>
+    {% else %}
+    <p class="ayuda" style="margin:0">Todavía no hay intentos registrados.</p>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

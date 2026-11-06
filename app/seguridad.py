@@ -1,6 +1,7 @@
 """Seguridad de acceso (HU-001): contraseñas, autenticación y roles."""
 
 import unicodedata
+from datetime import timedelta
 from pathlib import Path
 
 import bcrypt
@@ -9,7 +10,8 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.database import obtener_db
-from app.models import Usuario
+from app.horario import a_utc, ahora
+from app.models import IntentoIngreso, Usuario
 
 # ---------- Roles ----------
 
@@ -118,17 +120,60 @@ def normalizar_email(email: str) -> str:
     return email.strip().lower()
 
 
+# ---------- Ingreso: bloqueo de la cuenta y registro de intentos ----------
+
+# Luego de 10 intentos fallidos seguidos, la cuenta queda bloqueada 15 minutos.
+INTENTOS_MAXIMOS = 10
+MINUTOS_DE_BLOQUEO = 15
+
+
+def registrar_intento(db: Session, email: str, usuario: Usuario | None, resultado: str) -> None:
+    db.add(
+        IntentoIngreso(
+            email=email[:255],
+            usuario=usuario,
+            fecha_hora=ahora(),
+            resultado=resultado,
+        )
+    )
+
+
+def esta_bloqueado(usuario: Usuario) -> bool:
+    return usuario.bloqueado_hasta is not None and ahora() < a_utc(usuario.bloqueado_hasta)
+
+
 def autenticar(db: Session, email: str, clave: str) -> Usuario | None:
     """Devuelve el usuario si el correo y la contraseña son correctos.
 
-    Si algo no coincide devuelve None, sin distinguir cuál de los dos falló.
+    Si algo no coincide devuelve None, sin distinguir cuál de los dos falló ni si
+    la cuenta está bloqueada: el mensaje al usuario es siempre el mismo.
+    Cada intento queda registrado con su resultado: correcto, fallido o bloqueado.
     """
-    consulta = select(Usuario).where(Usuario.email == normalizar_email(email))
-    usuario = db.scalars(consulta).first()
-    if usuario is None:
+    email = normalizar_email(email)
+    usuario = db.scalars(select(Usuario).where(Usuario.email == email)).first()
+
+    # Cuenta bloqueada: se rechaza aunque la contraseña sea correcta.
+    if usuario is not None and esta_bloqueado(usuario):
+        registrar_intento(db, email, usuario, "bloqueado")
+        db.commit()
         return None
-    if not verificar_clave(clave, usuario.clave_hash):
+
+    if usuario is None or not verificar_clave(clave, usuario.clave_hash):
+        if usuario is not None:
+            usuario.intentos_fallidos += 1
+            if usuario.intentos_fallidos >= INTENTOS_MAXIMOS:
+                usuario.bloqueado_hasta = ahora() + timedelta(minutes=MINUTOS_DE_BLOQUEO)
+                # Al terminar el bloqueo vuelve a tener 10 intentos.
+                usuario.intentos_fallidos = 0
+        registrar_intento(db, email, usuario, "fallido")
+        db.commit()
         return None
+
+    # Ingreso correcto: se reinicia el contador de intentos fallidos.
+    usuario.intentos_fallidos = 0
+    usuario.bloqueado_hasta = None
+    registrar_intento(db, email, usuario, "correcto")
+    db.commit()
     return usuario
 
 

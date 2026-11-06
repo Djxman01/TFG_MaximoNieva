@@ -14,6 +14,16 @@ def ahora() -> datetime:
     return datetime.now(timezone.utc)
 
 
+def a_utc(momento: datetime | None) -> datetime | None:
+    """Asegura que la fecha tenga zona horaria (UTC), para poder compararla."""
+    if momento is None:
+        return None
+    if momento.tzinfo is None:
+        # SQLite (que se usa en las pruebas) devuelve las fechas sin zona: son UTC.
+        return momento.replace(tzinfo=timezone.utc)
+    return momento.astimezone(timezone.utc)
+
+
 def a_hora_local(momento: datetime | None) -> datetime | None:
     if momento is None:
         return None

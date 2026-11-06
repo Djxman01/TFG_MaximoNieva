@@ -57,6 +57,31 @@ class Usuario(Base):
     # Se guarda el hash de bcrypt, nunca la contraseña en claro.
     clave_hash: Mapped[str] = mapped_column(String(60))
     rol: Mapped[str] = mapped_column(String(20))
+    # Bloqueo de la cuenta: intentos fallidos seguidos y hasta cuándo está bloqueada.
+    intentos_fallidos: Mapped[int] = mapped_column(default=0, server_default="0")
+    bloqueado_hasta: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
+
+class IntentoIngreso(Base):
+    """Registro de cada intento de ingreso al sistema, correcto o no."""
+
+    __tablename__ = "intento_ingreso"
+    __table_args__ = (
+        CheckConstraint(
+            "resultado IN ('correcto', 'fallido', 'bloqueado')", name="ck_intento_resultado"
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    # El correo tal como se escribió (normalizado), exista o no la cuenta.
+    email: Mapped[str] = mapped_column(String(255))
+    usuario_id: Mapped[int | None] = mapped_column(ForeignKey("usuario.id"), nullable=True)
+    fecha_hora: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    resultado: Mapped[str] = mapped_column(String(10))
+
+    usuario: Mapped["Usuario | None"] = relationship()
 
 
 class Activo(Base):
