@@ -1,6 +1,16 @@
+# Entorno de Python
 .venv/
 __pycache__/
 .pytest_cache/
-.DS_Store
+
+# Configuración local con claves (se usa .env.example como modelo)
 .env
+
+# Respaldos de la base y de la evidencia
 respaldos/
+
+# Certificado raíz de Caddy copiado para confiar en él (ver README)
+caddy-raiz.crt
+
+# Archivos del sistema operativo
+.DS_Store

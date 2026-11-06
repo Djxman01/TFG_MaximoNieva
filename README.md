@@ -275,3 +275,7 @@ de Python sin base de datos ni web, y cada una tiene sus propias pruebas.
 Python 3.14, FastAPI, SQLAlchemy y Alembic, PostgreSQL 17, Jinja2 con htmx 2.0.11 (sin
 framework de JavaScript), Leaflet 1.9.4 con teselas de OpenStreetMap, pyproj, bcrypt, pytest,
 Caddy 2.11 (proxy inverso HTTPS), Docker y Docker Compose.
+
+## Licencia
+
+MIT. Ver [LICENSE](LICENSE).
