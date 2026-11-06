@@ -13,8 +13,9 @@ las personas y las coordenadas no corresponden a ninguna operación real.
 
 | Historia | Funcionalidad | Estado |
 |---|---|---|
-| HU-001 | Ingreso al sistema, contraseñas NIST, perfiles Líder de Operaciones y Operador | Implementada |
-| HU-002, HU-003 | Activos y criterios de criticidad | Por datos semilla, sin pantallas de alta |
+| HU-001 | Ingreso al sistema, contraseñas NIST, perfiles, bloqueo de la cuenta y registro de ingresos | Implementada |
+| HU-002 | Alta, edición y consulta de activos | Implementada |
+| HU-003 | Alta y edición de criterios de criticidad | Implementada |
 | HU-004 | Evaluación de criticidad con recálculo en vivo e historial | Implementada |
 | HU-005, HU-006 | Creación de la ronda y selección de activos | Implementadas |
 | HU-007 | Propuesta de orden con la regla propia, y mapa | Implementada |
@@ -26,7 +27,8 @@ las personas y las coordenadas no corresponden a ninguna operación real.
 ## Puesta en marcha
 
 Requiere **Docker** (con Docker Compose) y conexión a internet la primera vez, para descargar
-las imágenes. El fondo del mapa también se descarga de internet (OpenStreetMap).
+las imágenes. El fondo del mapa también se descarga de internet (OpenStreetMap). Los puertos
+80 y 443 de la computadora tienen que estar libres: los usa Caddy, el proxy HTTPS.
 
 1. **Solo la primera vez:** crear el archivo de configuración a partir del ejemplo.
 
@@ -53,7 +55,40 @@ las imágenes. El fondo del mapa también se descarga de internet (OpenStreetMap
 
    Se puede repetir sin duplicar nada.
 
-4. Abrir <http://localhost:8000> e ingresar con un usuario de prueba.
+4. Abrir <https://localhost> e ingresar con un usuario de prueba. La primera vez el navegador
+   muestra una **advertencia de certificado** (ver "HTTPS y la advertencia del navegador").
+   Si se entra por `http://localhost`, se redirige solo a HTTPS.
+
+### HTTPS y la advertencia del navegador
+
+Delante de la aplicación hay un proxy inverso **Caddy** que atiende por HTTPS (puerto 443) y
+redirige lo que llega por HTTP (puerto 80). El certificado lo emite la **autoridad
+certificante local** de Caddy (`tls internal`), que el navegador no conoce: por eso avisa que
+la conexión "no es privada". Hay dos maneras de seguir:
+
+- **Aceptar la advertencia** (lo más rápido para la demo): en Chrome, "Configuración avanzada"
+  → "Acceder a localhost (sitio no seguro)"; en Safari, "Mostrar detalles" → "visitar este
+  sitio web"; en Firefox, "Avanzado" → "Aceptar el riesgo y continuar". La conexión sigue
+  cifrada; lo que el navegador no puede comprobar es quién emitió el certificado.
+- **Confiar en la autoridad local de Caddy** (así no vuelve a avisar). Primero se copia su
+  certificado raíz:
+
+  ```bash
+  docker compose cp caddy:/data/caddy/pki/authorities/local/root.crt caddy-raiz.crt
+  ```
+
+  Después, en macOS: abrir `caddy-raiz.crt` con doble clic (se agrega a "Acceso a Llaveros"),
+  buscar "Caddy Local Authority", abrirlo y en "Confiar" elegir "Confiar siempre". En Windows:
+  doble clic → "Instalar certificado" → "Entidades de certificación raíz de confianza". En una
+  tableta o un celular se instala el mismo archivo desde los ajustes de seguridad.
+
+  Esto cambia la configuración de seguridad de la computadora: hacerlo solo en el equipo de la
+  demo. El certificado raíz queda guardado en el volumen `caddy_datos`; si se borra con
+  `docker compose down -v`, Caddy crea otra autoridad y hay que volver a confiar en ella.
+
+**Entrar desde una tableta en la misma red.** Agregar la IP de la computadora a `SITIO` en
+`.env` (por ejemplo `SITIO=localhost, 192.168.0.10`), ejecutar `docker compose up -d` y entrar
+por `https://192.168.0.10` desde la tableta.
 
 Para detener los servicios sin perder los datos: `docker compose stop`. Para volver a
 empezar desde cero (borra la base y la evidencia): `docker compose down -v`.
@@ -123,6 +158,13 @@ porque se volvió a copiar `.env.example`). Hay dos salidas:
 - Empezar de cero (borra la base y la evidencia): `docker compose down -v`, después
   `docker compose up -d --build` y los datos semilla.
 
+**"port is already allocated" al levantar Caddy.** Otro programa usa el puerto 80 o el 443.
+Cerrarlo, o cambiar en `docker-compose.yml` el lado izquierdo de los puertos de `caddy` (por
+ejemplo `"8443:443"`) y entrar por `https://localhost:8443`.
+
+**El navegador dice que la conexión no es privada.** Es el certificado local de Caddy: ver
+"HTTPS y la advertencia del navegador".
+
 ## Seguridad de acceso
 
 - **Identificación.** Correo electrónico (único) y contraseña.
@@ -134,10 +176,19 @@ porque se volvió a copiar `.env.example`). Hay dos salidas:
   (`app/datos/claves_bloqueadas.txt`) y las que superan los 72 bytes que admite bcrypt. La
   contraseña se normaliza a Unicode NFC antes de calcular el hash. No vence. Se valida al dar
   de alta el usuario.
-- **Sesión.** Cookie firmada con una clave secreta, no accesible desde JavaScript, con una
-  duración de 8 horas. Si la cookie se modifica, la firma deja de coincidir y se descarta.
+- **Sesión.** Cookie firmada con una clave secreta, marcada `Secure` (solo viaja por HTTPS),
+  `HttpOnly` (no accesible desde JavaScript) y `SameSite=Lax`, con una duración de 8 horas. Si
+  la cookie se modifica, la firma deja de coincidir y se descarta.
 - **Mensaje de error.** Ante un ingreso fallido se informa "Correo o contraseña incorrectos",
-  sin indicar cuál de los dos datos falló.
+  sin indicar cuál de los dos datos falló ni si la cuenta está bloqueada.
+- **Bloqueo de la cuenta.** Luego de 10 intentos fallidos seguidos, la cuenta queda bloqueada
+  15 minutos, aunque después se escriba la contraseña correcta. Un ingreso correcto reinicia el
+  contador. Al vencer el bloqueo, la cuenta vuelve a tener 10 intentos.
+- **Registro de ingresos.** Cada intento queda guardado con el correo usado, el usuario, la
+  fecha y hora y el resultado (correcto, fallido o bloqueado). El Líder lo consulta en
+  **Ingresos**, junto con las cuentas bloqueadas en ese momento.
+- **HTTPS.** El tráfico va cifrado entre el navegador y Caddy, que reenvía a la aplicación
+  dentro de la red interna de Docker. La aplicación no publica su puerto.
 - **Roles.** `lider` (Líder de Operaciones: evalúa criticidad, planifica y confirma rondas,
   consulta cobertura y trazabilidad) y `operador` (consulta activos y
   registra verificaciones, evidencia y hallazgos). Cada ruta declara qué roles la pueden usar;
@@ -148,9 +199,9 @@ porque se volvió a copiar `.env.example`). Hay dos salidas:
 - **Base de datos.** No publica ningún puerto: solo la aplicación puede conectarse. Las
   claves de la base y de la sesión están en el archivo `.env`, fuera del repositorio.
 
-No implementado (se declara como política del proyecto): bloqueo por intentos fallidos,
-cambio obligatorio en el primer ingreso, pantalla de administración de usuarios, recuperación
-de contraseña y HTTPS.
+No implementado (fuera del prototipo): pantalla de administración de usuarios, cambio
+obligatorio en el primer ingreso y recuperación de contraseña. Las cuentas las crea el área de
+sistemas con el comando de "Crear otros usuarios".
 
 ## Respaldo
 
@@ -205,6 +256,7 @@ app/
   templates/         plantillas Jinja2 (basadas en los prototipos de la tesis)
   static/            estilos, htmx, Leaflet y el script del mapa
 alembic/             migraciones del esquema de la base
+Caddyfile            configuración del proxy HTTPS
 scripts/             datos semilla, alta de usuarios, respaldo y restauración
 tests/               pruebas con pytest
 ```
@@ -216,4 +268,4 @@ de Python sin base de datos ni web, y cada una tiene sus propias pruebas.
 
 Python 3.14, FastAPI, SQLAlchemy y Alembic, PostgreSQL 17, Jinja2 con htmx 2.0.11 (sin
 framework de JavaScript), Leaflet 1.9.4 con teselas de OpenStreetMap, pyproj, bcrypt, pytest,
-Docker y Docker Compose.
+Caddy 2.11 (proxy inverso HTTPS), Docker y Docker Compose.

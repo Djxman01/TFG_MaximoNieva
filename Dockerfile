@@ -17,4 +17,5 @@ USER aplicacion
 EXPOSE 8000
 
 # Al iniciar se aplican las migraciones pendientes y después arranca el servidor.
-CMD ["sh", "-c", "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"]
+# --proxy-headers: la aplicación sabe que el pedido original llegó por HTTPS a Caddy.
+CMD ["sh", "-c", "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000 --proxy-headers --forwarded-allow-ips='*'"]

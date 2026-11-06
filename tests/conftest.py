@@ -49,7 +49,8 @@ def db():
 def cliente(db):
     """Un navegador simulado que habla con la aplicación usando la base de prueba."""
     app.dependency_overrides[obtener_db] = lambda: db
-    yield TestClient(app)
+    # La cookie de sesión es Secure: el navegador simulado tiene que usar HTTPS.
+    yield TestClient(app, base_url="https://testserver")
     app.dependency_overrides.clear()
 
 

@@ -22,11 +22,13 @@ app = FastAPI(title="Sistema de Rondas de Inspección")
 
 # La sesión se guarda en una cookie firmada con SECRET_KEY: el navegador la
 # puede leer, pero si la modifica la firma deja de coincidir y se descarta.
+# https_only=True agrega el atributo Secure: el navegador solo la envía por HTTPS.
 app.add_middleware(
     SessionMiddleware,
     secret_key=SECRET_KEY,
     max_age=DURACION_SESION,
     same_site="lax",
+    https_only=True,
 )
 
 app.mount("/static", StaticFiles(directory=CARPETA_APP / "static"), name="static")

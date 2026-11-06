@@ -1,4 +1,4 @@
-# Servicios del prototipo: la aplicación web y la base de datos.
+# Servicios del prototipo: el proxy HTTPS (Caddy), la aplicación web y la base de datos.
 # Los valores ${...} se leen del archivo .env (ver .env.example).
 
 services:
@@ -27,12 +27,30 @@ services:
       EVIDENCIA_DIR: /datos/evidencia
     volumes:
       - evidencia:/datos/evidencia
-    ports:
-      - "8000:8000"
+    # La aplicación no publica su puerto: solo Caddy (en la red interna) llega a ella.
+    expose:
+      - "8000"
     depends_on:
       db:
         condition: service_healthy
 
+  caddy:
+    image: caddy:2.11
+    restart: unless-stopped
+    environment:
+      SITIO: ${SITIO:-localhost}
+    ports:
+      - "80:80"     # HTTP: redirige a HTTPS
+      - "443:443"   # HTTPS
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_datos:/data        # autoridad certificante local y certificados
+      - caddy_config:/config
+    depends_on:
+      - app
+
 volumes:
   datos_db:     # datos de PostgreSQL
   evidencia:    # archivos de evidencia de las verificaciones
+  caddy_datos:  # certificados de Caddy (si se borra, cambia la autoridad local)
+  caddy_config:

@@ -1,0 +1,16 @@
+# Proxy inverso de Caddy delante de la aplicación (HTTPS).
+#
+# - Atiende el sitio por HTTPS (443) con un certificado emitido por la autoridad
+#   certificante local de Caddy ("tls internal"). El navegador no la conoce, así
+#   que muestra una advertencia hasta que se confía en ella (ver README).
+# - Lo que llega por HTTP (80) se redirige solo a HTTPS.
+# - La aplicación no publica ningún puerto: solo Caddy puede llegar a ella.
+#
+# SITIO es el nombre o la dirección con que se entra al sistema. Por defecto,
+# localhost. Para entrar desde una tableta en la misma red, agregar la IP del
+# servidor en .env, por ejemplo: SITIO=localhost, 192.168.0.10
+
+{$SITIO:localhost} {
+	tls internal
+	reverse_proxy app:8000
+}
