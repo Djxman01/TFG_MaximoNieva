@@ -172,3 +172,9 @@ label.zona-carga { display: block; cursor: pointer; }
 .referencias { display: flex; flex-wrap: wrap; gap: var(--e-4); margin-top: 10px; font-size: 11.5px; color: var(--txt-2); }
 .referencias i { display: inline-block; width: 11px; height: 11px; border-radius: 50%; margin-right: 5px; vertical-align: -1px; }
 .referencias i.hueco { background: #FFFFFF; border: 2px solid var(--txt-3); width: 9px; height: 9px; }
+
+/* Criterios: "Afecta a" solo tiene sentido para la consecuencia. */
+.form-criterio .solo-consecuencia { opacity: .38; pointer-events: none; }
+.form-criterio:has(input[name="dimension"][value="consecuencia"]:checked) .solo-consecuencia {
+  opacity: 1; pointer-events: auto;
+}

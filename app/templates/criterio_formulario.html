@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+
+{% block contenido %}
+<div class="encabezado">
+  <div class="miga"><a href="/criterios">Criterios</a><span>›</span>{{ "Editar" if criterio else "Nuevo" }}</div>
+  <h1>{{ "Editar criterio" if criterio else "Nuevo criterio" }}</h1>
+</div>
+
+{% if errores %}
+<div class="aviso error" role="alert" style="margin:16px 32px 0">
+  <b>No se pudo guardar el criterio:</b>
+  <ul style="margin:6px 0 0; padding-left:18px">{% for error in errores %}<li>{{ error }}</li>{% endfor %}</ul>
+</div>
+{% endif %}
+
+<form method="post" action="{{ '/criterios/' ~ criterio.id if criterio else '/criterios' }}" class="form-criterio" novalidate>
+<div class="cuerpo">
+  <div class="col-izq">
+    <section class="tarjeta">
+      <h2>Datos del criterio</h2>
+      <div class="campo" style="margin-top:12px">
+        <label for="nombre">Nombre <span class="obligatorio">*</span></label>
+        <input type="text" id="nombre" name="nombre" maxlength="200" value="{{ datos.nombre }}" placeholder="Por ejemplo: Registró desvíos de parámetros en la última ronda">
+      </div>
+      <div class="campo">
+        <label for="descripcion">Descripción o ejemplo (opcional)</label>
+        <input type="text" id="descripcion" name="descripcion" maxlength="300" value="{{ datos.descripcion }}">
+      </div>
+
+      {% if usado %}
+      <p class="aviso atencion">Este criterio ya se usó en evaluaciones: su dimensión ({{ DIMENSIONES[criterio.dimension] | lower }}{% if criterio.nivel %}, {{ NIVELES[criterio.nivel] | lower }}{% endif %}) no se puede cambiar, para que el historial se siga leyendo como se calculó. Si ya no corresponde, deshabilitalo y creá uno nuevo.</p>
+      {% else %}
+      <div class="grupo-campo">
+        <label>Dimensión <span class="obligatorio">*</span></label>
+        <div class="opciones">
+          {% for clave, nombre in DIMENSIONES.items() %}
+          <label class="opcion">
+            <input type="radio" name="dimension" value="{{ clave }}" {% if datos.dimension == clave %}checked{% endif %}>
+            <span class="punto"></span>
+            <span><span class="rot">{{ nombre }}</span>
+              <span class="det">{{ "Posibilidad de que se produzca una falla" if clave == "probabilidad" else "Magnitud del impacto si la falla se produce" }}</span></span>
+          </label>
+          {% endfor %}
+        </div>
+      </div>
+      <div class="grupo-campo solo-consecuencia">
+        <label>Afecta a <span class="obligatorio">*</span> <span class="nota-en-linea">(solo para consecuencia)</span></label>
+        <div class="opciones">
+          {% for clave, nombre in NIVELES.items() %}
+          <label class="opcion">
+            <input type="radio" name="nivel" value="{{ clave }}" {% if datos.nivel == clave %}checked{% endif %}>
+            <span class="punto"></span>
+            <span><span class="rot">{{ nombre }}</span></span>
+          </label>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+
+      <label class="factor" style="margin-top:16px">
+        <input type="checkbox" name="habilitado" value="true" {% if datos.habilitado %}checked{% endif %}>
+        <span class="caja"></span>
+        <span class="texto"><span class="principal">Habilitado</span>
+          <span class="evidencia">Solo los criterios habilitados aparecen en la evaluación de criticidad.</span></span>
+      </label>
+
+      <div class="acciones">
+        <a class="boton" href="/criterios">Cancelar</a>
+        <button type="submit" class="boton primario">Guardar criterio</button>
+      </div>
+    </section>
+  </div>
+  <div class="col-der">
+    <section class="tarjeta">
+      <h2>Cómo se usa</h2>
+      <p class="ayuda"><b>Probabilidad:</b> se cuentan los factores marcados (dos o más: alta; uno: media; ninguno: baja).</p>
+      <p class="ayuda"><b>Consecuencia:</b> manda el nivel más grave marcado (personas: alta; ambiente o producción: media; ninguno: baja).</p>
+    </section>
+  </div>
+</div>
+</form>
+{% endblock %}

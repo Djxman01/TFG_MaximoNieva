@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+
+{% block contenido %}
+<div class="encabezado">
+  <h1>Criterios de criticidad</h1>
+  <div class="miga">Factores que se marcan al evaluar un activo. La regla de cálculo es fija: probabilidad por cantidad de factores y consecuencia por jerarquía.</div>
+</div>
+
+{% if guardado %}<p class="aviso exito" role="status" style="margin:16px 32px 0">Criterio guardado: {{ guardado.nombre }}.</p>{% endif %}
+{% if not configuracion_completa %}
+<p class="aviso error" role="alert" style="margin:16px 32px 0">La configuración de criterios no está completa: hace falta al menos un criterio habilitado de probabilidad y uno de consecuencia. Mientras tanto no se pueden evaluar activos.</p>
+{% endif %}
+
+<div class="cuerpo" style="flex-direction:column">
+  <div class="acciones" style="justify-content:flex-end">
+    <a class="boton primario" style="flex:none; width:200px" href="/criterios/nuevo">Nuevo criterio</a>
+  </div>
+  <section class="tarjeta" style="width:100%">
+    <table class="tabla">
+      <tr><th>Criterio</th><th>Dimensión</th><th>Afecta a</th><th>Estado</th><th>Usado en</th><th></th></tr>
+      {% for criterio in criterios %}
+      <tr>
+        <td><b>{{ criterio.nombre }}</b>{% if criterio.descripcion %}<br><span class="nota-en-linea">{{ criterio.descripcion }}</span>{% endif %}</td>
+        <td>{{ DIMENSIONES[criterio.dimension] }}</td>
+        <td>{{ NIVELES[criterio.nivel] if criterio.nivel else "—" }}</td>
+        <td>{{ "Habilitado" if criterio.habilitado else "Deshabilitado" }}</td>
+        <td>{{ usos[criterio.id] }} evaluaciones</td>
+        <td><a href="/criterios/{{ criterio.id }}/editar">Editar</a></td>
+      </tr>
+      {% endfor %}
+    </table>
+  </section>
+</div>
+{% endblock %}
