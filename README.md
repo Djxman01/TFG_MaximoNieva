@@ -205,23 +205,29 @@ sistemas con el comando de "Crear otros usuarios".
 
 ## Respaldo
 
-```bash
-sh scripts/respaldo.sh
-```
-
-Genera en `respaldos/` dos archivos con fecha y hora:
+**Automático.** El servicio `respaldo` de `docker-compose.yml` (con `cron`) copia todos los
+días a las **02:00** (hora de Argentina) la base de datos y el volumen de evidencia en la
+carpeta `respaldos/` del proyecto, y **borra los de más de 7 días**. Arranca solo con
+`docker compose up -d`. Genera dos archivos con fecha y hora:
 
 - `base_AAAAMMDD_HHMM.dump`: copia de PostgreSQL hecha con `pg_dump`.
 - `evidencia_AAAAMMDD_HHMM.tar.gz`: copia del volumen de evidencia.
 
-El script se ejecuta a mano. Para programarlo, se agrega al `cron` del servidor; por ejemplo,
-todos los días a las 02:00:
+Para ver que está activo y probarlo en el momento, sin esperar a las 02:00:
 
-```
-0 2 * * * cd /ruta/al/proyecto && sh scripts/respaldo.sh
+```bash
+docker compose exec respaldo crontab -l
+docker compose exec respaldo sh /respaldo/respaldar.sh
 ```
 
-La carpeta `respaldos/` queda en el mismo equipo: copiarla a otro soporte es un paso aparte.
+**Manual.** También se puede generar un respaldo cuando se quiera:
+
+```bash
+sh scripts/respaldo.sh
+```
+
+La carpeta `respaldos/` queda en el mismo equipo: copiarla a otro soporte (otro servidor, un
+disco externo) es un paso aparte, que el prototipo no hace.
 
 Para restaurar (reemplaza los datos actuales):
 
@@ -257,7 +263,7 @@ app/
   static/            estilos, htmx, Leaflet y el script del mapa
 alembic/             migraciones del esquema de la base
 Caddyfile            configuración del proxy HTTPS
-scripts/             datos semilla, alta de usuarios, respaldo y restauración
+scripts/             datos semilla, alta de usuarios, respaldo (manual y automático) y restauración
 tests/               pruebas con pytest
 ```
 

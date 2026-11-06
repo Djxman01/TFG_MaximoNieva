@@ -1,0 +1,4 @@
+# Tabla de tareas del servicio de respaldo (formato de cron).
+# minuto hora día mes día-de-la-semana  comando
+# Todos los días a las 02:00:
+0 2 * * * /bin/sh /respaldo/respaldar.sh

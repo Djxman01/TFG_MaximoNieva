@@ -79,3 +79,25 @@ def test_el_puerto_de_la_aplicacion_no_esta_abierto():
     with socket.socket() as conexion:
         conexion.settimeout(2)
         assert conexion.connect_ex(("127.0.0.1", 8000)) != 0
+
+
+# ---------- Respaldo automático (servicio "respaldo") ----------
+
+
+def test_el_respaldo_corre_todos_los_dias_a_las_2():
+    crontab = (RAIZ / "scripts" / "respaldo_programado" / "crontab").read_text(encoding="utf-8")
+    tareas = [l for l in crontab.splitlines() if l.strip() and not l.startswith("#")]
+    assert tareas == ["0 2 * * * /bin/sh /respaldo/respaldar.sh"]
+
+
+def test_el_servicio_de_respaldo_usa_la_hora_de_argentina_y_lee_la_evidencia():
+    servicio = COMPOSE["services"]["respaldo"]
+    assert servicio["environment"]["TZ"] == "America/Argentina/Buenos_Aires"
+    assert "evidencia:/datos/evidencia:ro" in servicio["volumes"]
+    assert "./respaldos:/respaldos" in servicio["volumes"]
+
+
+def test_el_respaldo_conserva_siete_dias():
+    script = (RAIZ / "scripts" / "respaldo_programado" / "respaldar.sh").read_text(encoding="utf-8")
+    assert "DIAS_DE_RETENCION=7" in script
+    assert "-mtime +$((DIAS_DE_RETENCION - 1)) -delete" in script
